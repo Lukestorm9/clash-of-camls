@@ -1,0 +1,8 @@
+B +threads
+B _build
+PKG ounit2
+PKG sdl
+PKG sdl.sdlimage
+PKG sdl.sdlttf
+PKG sdl.sdlmixer
+FLG -I threads

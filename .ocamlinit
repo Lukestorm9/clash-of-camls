@@ -1,0 +1,14 @@
+#require "ounit2";;
+#require "sdl";;
+#require "sdl.sdlimage";;
+#require "sdl.sdlttf";;
+#require "sdl.sdlmixer";;
+#directory "+threads";;
+#load "unix.cma";;
+#load "threads.cma";;
+#directory "_build";;
+#load "common.cmo";;
+#load "client.cmo";;
+#load "render.cmo";;
+#load "world_manager.cmo";;
+#load "server.cmo";;
