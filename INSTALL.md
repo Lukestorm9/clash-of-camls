@@ -15,3 +15,5 @@ You'll probably want to update an existing installation using something like `ws
 You'll then need to install `https://sourceforge.net/projects/vcxsrv/`. After you have done so, run the following through CMD (not powershell) `"C:\Program Files\VcXsrv\vcxsrv.exe" :0 -ac -terminate -lesspointer -multiwindow -clipboard -wgl -dpi auto`. Run the shortcut it creates to configure VcXsrv.
 
 Then run `sudo apt install terminator` on WSL. Run an X-Server compliant window with `DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):0 terminator &`. If you try to run the game, it has to be from the window that command creates.
+
+To then actually run the make, use `make play CMD="local <port>"`. See the file README.md in this repository for more details.
