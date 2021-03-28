@@ -4,16 +4,10 @@
    You may not redistribute this assignment, distribute any derivatives,
    or use it for commercial purposes.
  ************************************************************)
-
-(* TODO: change the name and NetID below to your own, then delete this
-   TODO comment. *)
-
+ 
 (** CS 3110 Spring 2021 Assignment A2 Adventure
 
-    @authors Luke Murphy (ltm52), Luis Hoderlein (lrh74), *)
-
-(* TODO: complete the academic integrity statement below, then delete
-   this TODO comment. *)
+    @authors Luke Murphy (ltm52), Luis Hoderlein (lrh74), Raj Rafalia (rrr236)*)
 
 (************************************************************ 
 
