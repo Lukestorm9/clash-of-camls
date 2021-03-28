@@ -10,7 +10,7 @@
 
 (** CS 3110 Spring 2021 Assignment A2 Adventure
 
-    @authors Luke Murphy (ltm52) *)
+    @authors Luke Murphy (ltm52), Luis Hoderlein (lrh74), *)
 
 (* TODO: complete the academic integrity statement below, then delete
    this TODO comment. *)
