@@ -56,6 +56,7 @@ let run (world_state : Common.world_state) hashmap =
       world
     |> ignore;
     Sdlvideo.flip screen;
+    Input_handler.key_checker ();
     let time_end = Sdltimer.get_ticks () in
     Sdltimer.delay (max ((1000 / 60) - (time_end - time_begin)) 0)
   done
