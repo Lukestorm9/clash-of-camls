@@ -43,6 +43,7 @@ let start addr port =
       data = Array.make 500 None;
       mutex = Mutex.create ();
       uuid = ref None;
+      user_command = ref Common.Nothing;
     }
   in
   match try_sock_connect addr port with

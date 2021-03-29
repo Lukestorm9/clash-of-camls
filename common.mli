@@ -24,6 +24,13 @@ type entity = {
   health : float;
 }
 
+type action =
+  | Nothing
+  | Left
+  | Right
+  | Up
+  | Down
+
 (* [world_state] represents the world state as the client, NOT the
    server, understands it. Before accessing any of the data-bearing
    fields, it is imperative that the Mutex be locked. It is equally
@@ -39,6 +46,8 @@ type world_state = {
      exist in the data array, for example in the case where the player
      character has perished. *)
   uuid : int option ref;
+  (* The last thing a user wanted to do*)
+  user_command : action ref;
   (* The mutex for the world state. The structure requires this to be
      locked before accessing any of its fields. *)
   mutex : Mutex.t;
