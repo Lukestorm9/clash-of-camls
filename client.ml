@@ -8,18 +8,25 @@ let try_sock_connect addr port =
   try
     Unix.connect sock sock_addr;
     Some sock
-  with Unix.Unix_error _ -> None
+  with _ -> None
 
 (* Client update loop. Pulls data from the server, and sticks it in the
    shared mutable state. *)
 let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
   let recv_chan = Unix.in_channel_of_descr sock in
+  (* Read an assign the uuid corresponding to the player from the server *)
+  let uuid = (Marshal.from_channel recv_chan : int) in
+  "Successfully logged in -- was assigned uuid " ^ string_of_int uuid
+  |> print_endline;
+  Mutex.lock state.mutex;
+  state.uuid := Some uuid;
+  Mutex.unlock state.mutex;
+
+  (* Listen to updates *)
   while true do
     let noveau =
       (Marshal.from_channel recv_chan : Common.entity option array)
     in
-    let first = noveau.(0) |> Option.get in
-    string_of_float first.x ^ string_of_float first.y |> print_endline;
     let len = Array.length noveau in
     Mutex.lock state.mutex;
     Array.blit noveau 0 state.data 0 len;
@@ -33,7 +40,7 @@ let start addr port =
     {
       data = Array.make 500 None;
       mutex = Mutex.create ();
-      highest_uuid = ref 0;
+      uuid = ref None;
     }
   in
   match try_sock_connect addr port with

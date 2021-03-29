@@ -11,6 +11,6 @@ type entity = {
 
 type world_state = {
   data : entity option array;
-  highest_uuid : int ref;
   mutex : Mutex.t;
+  uuid : int option ref;
 }

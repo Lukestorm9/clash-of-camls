@@ -1,3 +1,10 @@
+(* Define a type for the server *)
+type world_state = {
+  data : Common.entity option array;
+  mutex : Mutex.t;
+  highest_uuid : int ref;
+}
+
 (* Find the next open slot in the array *)
 let find_next_open array =
   let filter (acc, i) v =
@@ -10,35 +17,50 @@ let find_next_open array =
 (* Construct a new entity with the desired qualities, then insert it
    into the world state. Requires the state mutex to be locked on the
    current thread BEFORE this method is called.*)
-let insert_entity (state : Common.world_state) x y vx vy graphic health
-    =
+let insert_entity state x y vx vy graphic health =
   let uuid = !(state.highest_uuid) + 1 in
   let now = Unix.gettimeofday () in
   let entity : Common.entity =
     { uuid; x; y; vx; vy; time_sent_over = now; graphic; health }
   in
   match find_next_open state.data with
-  | Some i -> state.data.(i) <- Some entity
+  | Some i ->
+      state.data.(i) <- Some entity;
+      Some i
   (* TODO: fail another way? *)
-  | None -> print_endline "Failed to insert entity!"
+  | None ->
+      print_endline "Failed to insert entity!";
+      None
 
 (* The connection loop for a particular user. Loops forever. Suffers an
    exception when the user disconnects, which kill the thread. This
    behavior is intentional. *)
-let user_send_update_loop
-    ((conn, state) : Unix.file_descr * Common.world_state) =
+let user_send_update_loop (conn, state) =
   let send_chan = Unix.out_channel_of_descr conn in
-  while true do
-    Thread.delay 0.05;
-    Mutex.lock state.mutex;
-    Marshal.to_channel send_chan state.data [];
+  let recv_chan = Unix.in_channel_of_descr conn in
+  Mutex.lock state.mutex;
+  let uuid = insert_entity state 0. 0. 0. 0. "character.png" 10. in
+  Mutex.unlock state.mutex;
+  (* Maybe send some sort of an error message to the client? *)
+  if Option.is_none uuid then ();
+  (* Using Marshal because we may transmit additional client logon
+     information *)
+  try
+    Marshal.to_channel send_chan (Option.get uuid) [];
     flush send_chan;
-    (* In the future, send over highest_uuid here *)
-    Option.get state.data.(0) |> fun e ->
-    e.x |> string_of_float |> print_endline;
-    Mutex.unlock state.mutex
-  done;
-  ()
+
+    while true do
+      Thread.delay 0.05;
+      Mutex.lock state.mutex;
+      Marshal.to_channel send_chan state.data [];
+      flush send_chan;
+      Mutex.unlock state.mutex
+    done;
+    ()
+  with _ ->
+    print_endline "Client Thread Error: Terminating connection";
+    close_in_noerr recv_chan;
+    close_out_noerr send_chan
 
 (* Listen for new inbound connections, and spin them off onto new
    threads. *)
@@ -56,27 +78,28 @@ let network_loop (port, state) =
 (* Compute physics for a single object at a single time. This is an
    immutable operation, and a new object is returned. TODO: This will be
    replaced with something proper in a future version. *)
-let apply_physics_step time (state : Common.world_state) i e :
-    Common.entity =
+let apply_physics_step time (state : world_state) i e : Common.entity =
   let now = Unix.gettimeofday () in
-  let delta = now -. time +. (3. *. float_of_int i) in
+  let delta = now -. time +. (3.14 /. 6. *. float_of_int i) in
   {
     e with
-    x = 300. +. (300. *. cos delta);
+    x = 350. +. (300. *. cos delta);
     y = 300. +. (300. *. sin delta);
-    vx = -500. *. sin delta;
-    vy = 500. *. cos delta;
+    vx = -300. *. sin delta;
+    vy = 300. *. cos delta;
     time_sent_over = now;
   }
 
 (* Only do physics operations on objects which exist *)
-let filter_objects time (state : Common.world_state) i = function
+let filter_objects time state i = function
   | None -> None
-  | Some e -> Some (apply_physics_step time state i e)
+  | Some e ->
+      if i <= 4 then Some (apply_physics_step time state i e)
+      else Some e
 
 (* The physics loop, which is running all the time in the background.
    Set to run at approx 20 ticks per second. TODO: make time exact. *)
-let physics_loop (state : Common.world_state) =
+let physics_loop state =
   let start = Unix.gettimeofday () in
   while true do
     Thread.delay 0.05;
@@ -96,15 +119,20 @@ let physics_loop (state : Common.world_state) =
 (* Start the physics and networking threads *)
 let start port =
   Sys.set_signal Sys.sigpipe Signal_ignore;
-  let state : Common.world_state =
+  let state : world_state =
     {
       data = Array.make 500 None;
       mutex = Mutex.create ();
       highest_uuid = ref 0;
     }
   in
-  insert_entity state 0. 0. 0. 0. "character.png" 10.;
-  insert_entity state 0. 0. 0. 0. "character.png" 10.;
+  (* TODO: remove these -- In MS2, these will be replaced by random
+     generation algorithm *)
+  insert_entity state 0. 0. 0. 0. "dromedary.png" 10. |> ignore;
+  insert_entity state 0. 0. 0. 0. "dromedary.png" 10. |> ignore;
+  insert_entity state 0. 0. 0. 0. "dromedary.png" 10. |> ignore;
+  insert_entity state 0. 0. 0. 0. "dromedary.png" 10. |> ignore;
+  insert_entity state 0. 0. 0. 0. "character.png" 10. |> ignore;
 
   ( Thread.create physics_loop state,
     Thread.create network_loop (port, state) )
