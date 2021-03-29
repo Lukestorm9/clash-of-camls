@@ -42,7 +42,7 @@ let image_getter_render
 let run (world_state : Common.world_state) hashmap =
   let start_time = Sdltimer.get_ticks () in
   let screen = Sdlvideo.set_video_mode 800 600 [ `DOUBLEBUF ] in
-  Thread.create Input_handler.key_checker () |> ignore;
+  Thread.create Input_handler.key_checker world_state |> ignore;
   while true do
     let world = World_manager.get_local world_state 400.0 300.0 in
     let map_position_rect = Sdlvideo.rect 0 0 100 100 in

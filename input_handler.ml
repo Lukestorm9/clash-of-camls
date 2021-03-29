@@ -1,20 +1,25 @@
-let key_checker () =
+let mutex_helper
+    (world_state : Common.world_state)
+    (action : Common.action) =
+  Mutex.lock world_state.mutex;
+  world_state.user_command := action;
+  Mutex.unlock world_state.mutex
+
+let key_checker (world_state : Common.world_state) =
+  Sdlkey.enable_key_repeat ();
   while true do
     match Sdlevent.wait_event () with
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_ESCAPE } ->
-        print_endline "esc was pressed";
         Sdl.quit ()
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_w } ->
-        print_endline "w was pressed";
-        ()
+        mutex_helper world_state Common.Up
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_a } ->
-        print_endline "a was pressed";
-        ()
+        mutex_helper world_state Common.Left
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_s } ->
-        print_endline "s was pressed";
-        ()
+        mutex_helper world_state Common.Down
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_d } ->
-        print_endline "d was pressed";
-        ()
+        mutex_helper world_state Common.Left
     | _ -> ()
   done
+
+(*lock mutex and set action related to key pressed then unlock*)

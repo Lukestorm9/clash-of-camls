@@ -1,1 +1,1 @@
-val key_checker : unit -> unit
+val key_checker : Common.world_state -> unit
