@@ -32,6 +32,15 @@ let insert_entity state x y vx vy graphic health =
       print_endline "Failed to insert entity!";
       None
 
+(* [nowify e] updates the time sent over of an entity option [e] to the
+   current Unix time if that entity option is Some e*)
+let nowify (e : Common.entity option) =
+  match e with
+  | None -> None
+  | Some e ->
+      let now = Unix.gettimeofday () in
+      Some { e with time_sent_over = now }
+
 (* The connection loop for a particular user. Loops forever. Suffers an
    exception when the user disconnects, which kill the thread. This
    behavior is intentional. *)
@@ -43,18 +52,20 @@ let user_send_update_loop (conn, state) =
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
   if Option.is_none uuid then ();
-  (* Using Marshal because we may transmit additional client logon
-     information *)
+
   try
+    (* Using Marshal because we may transmit additional client logon
+       information *)
     Marshal.to_channel send_chan (Option.get uuid) [];
     flush send_chan;
 
     while true do
       Thread.delay 0.05;
       Mutex.lock state.mutex;
-      Marshal.to_channel send_chan state.data [];
-      flush send_chan;
-      Mutex.unlock state.mutex
+      let nowifed = Array.map nowify state.data in
+      Mutex.unlock state.mutex;
+      Marshal.to_channel send_chan nowifed [];
+      flush send_chan
     done;
     ()
   with _ ->
@@ -87,7 +98,6 @@ let apply_physics_step time (state : world_state) i e : Common.entity =
     y = 300. +. (300. *. sin delta);
     vx = -300. *. sin delta;
     vy = 300. *. cos delta;
-    time_sent_over = now;
   }
 
 (* Only do physics operations on objects which exist *)

@@ -42,16 +42,15 @@ let image_getter_render
 let run (world_state : Common.world_state) hashmap =
   let start_time = Sdltimer.get_ticks () in
   let screen = Sdlvideo.set_video_mode 800 600 [ `DOUBLEBUF ] in
-  (*Sdlkey.enable_key_repeat ();*)
+  Thread.create Input_handler.key_checker () |> ignore;
   while true do
-    Input_handler.key_checker ();
     let world = World_manager.get_local world_state 400.0 300.0 in
     let map_position_rect = Sdlvideo.rect 0 0 100 100 in
     Sdlvideo.blit_surface ~dst_rect:map_position_rect
       ~src:(Hashtbl.find hashmap "map.png")
       ~dst:screen ();
     let time_begin = Sdltimer.get_ticks () in
-    (*TODO unsync animations*)
+    (*TODO unsync animations?*)
     let anim_frame = (Sdltimer.get_ticks () - start_time) / 150 mod 4 in
     List.map
       (fun x -> image_getter_render x hashmap screen anim_frame)

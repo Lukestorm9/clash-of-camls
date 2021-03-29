@@ -23,15 +23,17 @@ let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
   Mutex.unlock state.mutex;
 
   (* Listen to updates *)
-  while true do
-    let noveau =
-      (Marshal.from_channel recv_chan : Common.entity option array)
-    in
-    let len = Array.length noveau in
-    Mutex.lock state.mutex;
-    Array.blit noveau 0 state.data 0 len;
-    Mutex.unlock state.mutex
-  done
+  try
+    while true do
+      let noveau =
+        (Marshal.from_channel recv_chan : Common.entity option array)
+      in
+      let len = Array.length noveau in
+      Mutex.lock state.mutex;
+      Array.blit noveau 0 state.data 0 len;
+      Mutex.unlock state.mutex
+    done
+  with _ -> print_endline "Connection to server lost"
 
 (* This initializes the shared state, and then spins up the new thread
    for the client to be on. *)

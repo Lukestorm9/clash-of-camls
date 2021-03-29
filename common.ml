@@ -1,3 +1,4 @@
+(* copy of the definition in common.mli *)
 type entity = {
   uuid : int;
   x : float;
@@ -9,8 +10,9 @@ type entity = {
   health : float;
 }
 
+(* copy of the definition in common.mli *)
 type world_state = {
   data : entity option array;
-  mutex : Mutex.t;
   uuid : int option ref;
+  mutex : Mutex.t;
 }
