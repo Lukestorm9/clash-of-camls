@@ -62,11 +62,9 @@ let xy (state : Common.world_state) =
       let candidates =
         array_filter (fun entity -> entity.uuid = uuid) state
       in
-      match List.length candidates with
-      | 0 -> None
-      | _ ->
-          let candidate = List.nth candidates 0 in
-          Some (candidate.x, candidate.y))
+      match candidates with
+      | [] -> None
+      | h::_ -> Some (h.x, h.y))
   | None -> None
 
 let get_player_xy (state : Common.world_state) =
