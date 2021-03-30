@@ -23,8 +23,10 @@ let image_getter_render
     screen
     anim_frame =
   let position_rect =
-    Sdlvideo.rect (int_of_float entity.x) (int_of_float entity.y) 100
-      100
+    Sdlvideo.rect
+      (int_of_float entity.x - 64 + 400)
+      (int_of_float entity.y - 64 + 300)
+      100 100
   in
   let source =
     try
@@ -45,7 +47,16 @@ let run (world_state : Common.world_state) hashmap =
   Thread.create Input_handler.key_checker world_state |> ignore;
   while true do
     let world = World_manager.get_local world_state 400.0 300.0 in
-    let map_position_rect = Sdlvideo.rect 0 0 100 100 in
+    let x, y =
+      World_manager.get_player_xy world_state
+      |> Option.value ~default:(0., 0.)
+    in
+    let map_position_rect =
+      Sdlvideo.rect
+        (int_of_float (-1.0 *. x))
+        (int_of_float (-1.0 *. y))
+        100 100
+    in
     Sdlvideo.blit_surface ~dst_rect:map_position_rect
       ~src:(Hashtbl.find hashmap "map.png")
       ~dst:screen ();
