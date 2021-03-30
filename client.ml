@@ -14,6 +14,7 @@ let try_sock_connect addr port =
    shared mutable state. *)
 let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
   let recv_chan = Unix.in_channel_of_descr sock in
+  let send_chan = Unix.out_channel_of_descr sock in
   (* Read an assign the uuid corresponding to the player from the server *)
   let uuid = (Marshal.from_channel recv_chan : int) in
   "Successfully logged in -- was assigned uuid " ^ string_of_int uuid
@@ -25,13 +26,21 @@ let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
   (* Listen to updates *)
   try
     while true do
+      (* State receive step *)
       let noveau =
         (Marshal.from_channel recv_chan : Common.entity option array)
       in
       let len = Array.length noveau in
+
+      (* State update step *)
       Mutex.lock state.mutex;
       Array.blit noveau 0 state.data 0 len;
-      Mutex.unlock state.mutex
+      let pair = (Option.get !(state.uuid), !(state.user_command)) in
+      Mutex.unlock state.mutex;
+
+      (* User action transmit step *)
+      Marshal.to_channel send_chan pair [];
+      flush send_chan
     done
   with _ -> print_endline "Connection to server lost"
 

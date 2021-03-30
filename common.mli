@@ -52,3 +52,7 @@ type world_state = {
      locked before accessing any of its fields. *)
   mutex : Mutex.t;
 }
+
+val array_filter : ('a -> bool) -> 'a option array -> 'a list
+
+val array_index_of : ('a -> bool) -> 'a option array -> int option

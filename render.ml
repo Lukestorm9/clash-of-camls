@@ -48,8 +48,8 @@ let run (world_state : Common.world_state) hashmap =
   while true do
     let world = World_manager.get_local world_state 400.0 300.0 in
     let x, y =
-      World_manager.get_player_xy world_state
-      |> Option.value ~default:(0., 0.)
+      World_manager.get_player_xy world_state |> fun _ ->
+      None |> Option.value ~default:(0., 0.)
     in
     let map_position_rect =
       Sdlvideo.rect

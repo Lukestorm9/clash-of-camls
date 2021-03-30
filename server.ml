@@ -26,11 +26,33 @@ let insert_entity state x y vx vy graphic health =
   match find_next_open state.data with
   | Some i ->
       state.data.(i) <- Some entity;
-      Some i
+      state.highest_uuid := uuid;
+      Some uuid
   (* TODO: fail another way? *)
   | None ->
       print_endline "Failed to insert entity!";
       None
+
+(* Requires the mutex to be held*)
+let do_action state uuid action =
+  let idex =
+    Common.array_index_of
+      (fun (e : Common.entity) -> e.uuid = uuid)
+      state.data
+  in
+  let perform idex =
+    let e = Option.get state.data.(idex) in
+    let noveau =
+      match action with
+      | Common.Left -> Some { e with x = e.x -. 10. }
+      | Common.Right -> Some { e with x = e.x +. 10. }
+      | Common.Up -> Some { e with y = e.y -. 10. }
+      | Common.Down -> Some { e with y = e.y +. 10. }
+      | _ -> Some e
+    in
+    state.data.(idex) <- noveau
+  in
+  match idex with None -> () | Some i -> perform i
 
 (* [nowify e] updates the time sent over of an entity option [e] to the
    current Unix time if that entity option is Some e*)
@@ -56,16 +78,28 @@ let user_send_update_loop (conn, state) =
   try
     (* Using Marshal because we may transmit additional client logon
        information *)
-    Marshal.to_channel send_chan (Option.get uuid) [];
+    let uuid = Option.get uuid in
+    Marshal.to_channel send_chan uuid [];
     flush send_chan;
 
     while true do
       Thread.delay 0.05;
+      (* State read step *)
       Mutex.lock state.mutex;
       let nowifed = Array.map nowify state.data in
       Mutex.unlock state.mutex;
+
+      (* State send step *)
       Marshal.to_channel send_chan nowifed [];
-      flush send_chan
+      flush send_chan;
+
+      (* User action receive step *)
+      let (uuid, action) =
+        (Marshal.from_channel recv_chan : int * Common.action)
+      in
+      Mutex.lock state.mutex;
+      if action <> Nothing then do_action state uuid action else ();
+      Mutex.unlock state.mutex
     done;
     ()
   with _ ->

@@ -36,22 +36,12 @@ let rec location_smoothing
       let modified_h = modify_h h in
       location_smoothing t (modified_h :: acc)
 
-(*[array_filter] finds the entities that satisfy a predicate and returns
-  a list of those entities *)
-let array_filter pred (state : Common.world_state) =
-  Array.fold_left
-    (fun acc (t : Common.entity option) ->
-      match t with
-      | Some t -> if pred t then t :: acc else acc
-      | None -> acc)
-    [] state.data
-
 let get_local (state : Common.world_state) (x : float) (y : float) =
   let inside_circle (t : Common.entity) =
     inside_circle t.x t.y x y radius
   in
   Mutex.lock state.mutex;
-  let local_object = array_filter inside_circle state in
+  let local_object = Common.array_filter inside_circle state.data in
   Mutex.unlock state.mutex;
   location_smoothing local_object []
 
@@ -60,11 +50,11 @@ let xy (state : Common.world_state) =
   match !uuid with
   | Some uuid -> (
       let candidates =
-        array_filter (fun entity -> entity.uuid = uuid) state
+        Common.array_filter
+          (fun (entity : Common.entity) -> entity.uuid = uuid)
+          state.data
       in
-      match candidates with
-      | [] -> None
-      | h::_ -> Some (h.x, h.y))
+      match candidates with [] -> None | h :: _ -> Some (h.x, h.y) )
   | None -> None
 
 let get_player_xy (state : Common.world_state) =
