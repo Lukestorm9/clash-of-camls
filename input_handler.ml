@@ -14,7 +14,7 @@ let key_checker (world_state : Common.world_state) =
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_w } ->
         mutex_helper world_state Common.Up
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_a } ->
-        mutex_helper world_state Common.Left
+        mutex_helper world_state Common.Right
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_s } ->
         mutex_helper world_state Common.Down
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_d } ->

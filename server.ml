@@ -44,11 +44,11 @@ let do_action state uuid action =
     let e = Option.get state.data.(idex) in
     let noveau =
       match action with
-      | Common.Left -> Some { e with x = e.x -. 10. }
-      | Common.Right -> Some { e with x = e.x +. 10. }
-      | Common.Up -> Some { e with y = e.y -. 10. }
-      | Common.Down -> Some { e with y = e.y +. 10. }
-      | _ -> Some e
+      | Common.Left -> Some { e with x = e.x +. 10.; vx = 10. }
+      | Common.Right -> Some { e with x = e.x -. 10.; vx = -10. }
+      | Common.Up -> Some { e with y = e.y -. 10.; vy = -10. }
+      | Common.Down -> Some { e with y = e.y +. 10.; vy = 10. }
+      | Common.Nothing -> Some { e with vx = 0.; vy = 0. }
     in
     state.data.(idex) <- noveau
   in
@@ -98,7 +98,7 @@ let user_send_update_loop (conn, state) =
         (Marshal.from_channel recv_chan : int * Common.action)
       in
       Mutex.lock state.mutex;
-      if action <> Nothing then do_action state uuid action else ();
+      do_action state uuid action;
       Mutex.unlock state.mutex
     done;
     ()
