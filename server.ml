@@ -54,15 +54,6 @@ let do_action state uuid action =
   in
   match idex with None -> () | Some i -> perform i
 
-(* [nowify e] updates the time sent over of an entity option [e] to the
-   current Unix time if that entity option is Some e*)
-let nowify (e : Common.entity option) =
-  match e with
-  | None -> None
-  | Some e ->
-      let now = Unix.gettimeofday () in
-      Some { e with time_sent_over = now }
-
 (* The connection loop for a particular user. Loops forever. Suffers an
    exception when the user disconnects, which kill the thread. This
    behavior is intentional. *)
@@ -86,11 +77,11 @@ let user_send_update_loop (conn, state) =
       Thread.delay 0.05;
       (* State read step *)
       Mutex.lock state.mutex;
-      let nowifed = Array.map nowify state.data in
+      let copy = Array.copy state.data in
       Mutex.unlock state.mutex;
 
       (* State send step *)
-      Marshal.to_channel send_chan nowifed [];
+      Marshal.to_channel send_chan copy [];
       flush send_chan;
 
       (* User action receive step *)
@@ -128,8 +119,8 @@ let apply_physics_step time (state : world_state) i e : Common.entity =
   let delta = now -. time +. (3.14 /. 6. *. float_of_int i) in
   {
     e with
-    x = 350. +. (300. *. cos delta);
-    y = 300. +. (300. *. sin delta);
+    x = 300. *. cos delta;
+    y = 300. *. sin delta;
     vx = -300. *. sin delta;
     vy = 300. *. cos delta;
   }

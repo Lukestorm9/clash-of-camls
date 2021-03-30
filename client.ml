@@ -10,6 +10,15 @@ let try_sock_connect addr port =
     Some sock
   with _ -> None
 
+(* [nowify e] updates the time sent over of an entity option [e] to the
+   current Unix time if that entity option is Some e*)
+let nowify (e : Common.entity option) =
+  match e with
+  | None -> None
+  | Some e ->
+      let now = Unix.gettimeofday () in
+      Some { e with time_sent_over = now }
+
 (* Client update loop. Pulls data from the server, and sticks it in the
    shared mutable state. *)
 let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
@@ -29,6 +38,7 @@ let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
       (* State receive step *)
       let noveau =
         (Marshal.from_channel recv_chan : Common.entity option array)
+        |> Array.map nowify
       in
       let len = Array.length noveau in
 
