@@ -9,6 +9,7 @@
 #directory "_build";;
 #load "common.cmo";;
 #load "client.cmo";;
+#load "input_handler.cmo";;
 #load "render.cmo";;
 #load "world_manager.cmo";;
 #load "server.cmo";;

@@ -18,3 +18,6 @@ test:
 
 play:
 	$(OCAMLBUILD) -tag 'thread' -tag 'debug' $(MAIN) && OCAMLRUNPARAM=b ./$(MAIN) $(CMD)
+
+zip:
+	zip clash-of-camls.zip *.ml* *.json *.sh _tags .merlin .ocamlformat .ocamlinit *.md Makefile assets/*
