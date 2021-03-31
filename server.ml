@@ -21,7 +21,17 @@ let insert_entity state x y vx vy graphic health =
   let uuid = !(state.highest_uuid) + 1 in
   let now = Unix.gettimeofday () in
   let entity : Common.entity =
-    { uuid; x; y; vx; vy; time_sent_over = now; graphic; health }
+    {
+      uuid;
+      x;
+      y;
+      vx;
+      vy;
+      time_sent_over = now;
+      graphic;
+      health;
+      last_direction_moved = false;
+    }
   in
   match find_next_open state.data with
   | Some i ->
@@ -44,8 +54,22 @@ let do_action state uuid action =
     let e = Option.get state.data.(idex) in
     let noveau =
       match action with
-      | Common.Left -> Some { e with x = e.x +. 10.; vx = 10. }
-      | Common.Right -> Some { e with x = e.x -. 10.; vx = -10. }
+      | Common.Left ->
+          Some
+            {
+              e with
+              x = e.x +. 10.;
+              vx = 10.;
+              last_direction_moved = false;
+            }
+      | Common.Right ->
+          Some
+            {
+              e with
+              x = e.x -. 10.;
+              vx = -10.;
+              last_direction_moved = true;
+            }
       | Common.Up -> Some { e with y = e.y -. 10.; vy = -10. }
       | Common.Down -> Some { e with y = e.y +. 10.; vy = 10. }
       | Common.Nothing -> Some { e with vx = 0.; vy = 0. }
@@ -123,6 +147,7 @@ let apply_physics_step time (state : world_state) i e : Common.entity =
     y = 300. *. sin delta;
     vx = -300. *. sin delta;
     vy = 300. *. cos delta;
+    last_direction_moved = -300. *. sin delta <= 0.;
   }
 
 (* Only do physics operations on objects which exist *)

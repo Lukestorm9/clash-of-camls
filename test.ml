@@ -103,6 +103,7 @@ let (non_moving_entity_at_origin : Common.entity) =
     time_sent_over = 0.;
     graphic = "camel";
     health = 0.;
+    last_direction_moved = false;
   }
 
 let (moving_entity_at_origin : Common.entity) =
@@ -115,6 +116,7 @@ let (moving_entity_at_origin : Common.entity) =
     time_sent_over = 1.;
     graphic = "camel";
     health = 0.;
+    last_direction_moved = false;
   }
 
 let (moving_entity_at_origin' : Common.entity) =
@@ -127,6 +129,7 @@ let (moving_entity_at_origin' : Common.entity) =
     time_sent_over = 1.;
     graphic = "camel";
     health = 0.;
+    last_direction_moved = false;
   }
 
 let (entity_3 : Common.entity) =
@@ -139,6 +142,7 @@ let (entity_3 : Common.entity) =
     time_sent_over = 1.;
     graphic = "camel";
     health = 0.;
+    last_direction_moved = false;
   }
 
 let (world_alpha : Common.world_state) =
@@ -226,12 +230,12 @@ let world_manager_tests =
       entities, however the moving entity should be changed to where it
       is predicated to be (i.e. it should apply get_local's location
       smoothing)*)
-    (Thread.delay (1. /. 4.);
-     world_manager_get_local_tests
-       "Using world_1 with (0,0) | Expect all two entities: one \
-        non-moving and one moving"
-       world_1 0. 0.
-       [ non_moving_entity_at_origin; moving_entity_at_origin' ]);
+    ( Thread.delay (1. /. 4.);
+      world_manager_get_local_tests
+        "Using world_1 with (0,0) | Expect all two entities: one \
+         non-moving and one moving"
+        world_1 0. 0.
+        [ non_moving_entity_at_origin; moving_entity_at_origin' ] );
     (*see if it returns "None" when uuid is not found in the given zero
       entities*)
     world_manager_get_player_xy_tests

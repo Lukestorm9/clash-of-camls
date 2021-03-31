@@ -17,14 +17,9 @@ let inside_circle x1 y1 x2 y2 (r : float) : bool =
   parameeters of entity are changed.*)
 let modify_h (h : Common.entity) =
   {
-    Common.uuid = h.uuid;
+    h with
     x = h.x +. (h.vx *. (Unix.gettimeofday () -. h.time_sent_over));
     y = h.y +. (h.vy *. (Unix.gettimeofday () -. h.time_sent_over));
-    vx = h.vx;
-    vy = h.vy;
-    time_sent_over = h.time_sent_over;
-    graphic = h.graphic;
-    health = h.health;
   }
 
 let rec location_smoothing

@@ -8,6 +8,7 @@ type entity = {
   time_sent_over : float;
   graphic : string;
   health : float;
+  last_direction_moved : bool;
 }
 
 type action =

@@ -20,8 +20,12 @@ type entity = {
   vy : float;
   (* The time at which the server sent over the entity to the client.*)
   time_sent_over : float;
+  (* The graphic of the entity *)
   graphic : string;
+  (* The health of the entity *)
   health : float;
+  (* The last direction moved -- in particular, true iff right*)
+  last_direction_moved : bool;
 }
 
 type action =

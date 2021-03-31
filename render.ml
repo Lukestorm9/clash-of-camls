@@ -26,7 +26,8 @@ let image_getter_render
     try
       Hashtbl.find hashmap
         (string_combiner entity.graphic
-           (anim_decider (entity.vx > 0.0)
+           (anim_decider
+              (not entity.last_direction_moved)
               (entity.vx = 0.0 && entity.vy = 0.0))
            anim_frame)
     with Not_found -> Hashtbl.find hashmap "error"
