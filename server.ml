@@ -61,7 +61,7 @@ let user_send_update_loop (conn, state) =
   let send_chan = Unix.out_channel_of_descr conn in
   let recv_chan = Unix.in_channel_of_descr conn in
   Mutex.lock state.mutex;
-  let uuid = insert_entity state 0. 0. 0. 0. "character.png" 10. in
+  let uuid = insert_entity state 0. 0. 0. 0. "character" 10. in
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
   if Option.is_none uuid then ();
@@ -163,11 +163,11 @@ let start port =
   in
   (* TODO: remove these -- In MS2, these will be replaced by random
      generation algorithm *)
-  insert_entity state 0. 0. 0. 0. "dromedary.png" 10. |> ignore;
-  insert_entity state 0. 0. 0. 0. "dromedary.png" 10. |> ignore;
-  insert_entity state 0. 0. 0. 0. "dromedary.png" 10. |> ignore;
-  insert_entity state 0. 0. 0. 0. "dromedary.png" 10. |> ignore;
-  insert_entity state 0. 0. 0. 0. "character.png" 10. |> ignore;
+  insert_entity state 0. 0. 0. 0. "dromedary" 10. |> ignore;
+  insert_entity state 0. 0. 0. 0. "trailer" 10. |> ignore;
+  insert_entity state 0. 0. 0. 0. "trader" 10. |> ignore;
+  insert_entity state 0. 0. 0. 0. "camel" 10. |> ignore;
+  insert_entity state 0. 0. 0. 0. "camel" 10. |> ignore;
 
   ( Thread.create physics_loop state,
     Thread.create network_loop (port, state) )

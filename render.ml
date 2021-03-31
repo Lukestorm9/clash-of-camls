@@ -9,13 +9,7 @@ let anim_decider right idle =
   else if right && not idle then "_walk_right_"
   else if (not right) && idle then "_idle_left_"
   else if (not right) && not idle then "_walk_left_"
-  else "error.png"
-
-let string_helper (entity : Common.entity) right idle anim_frame =
-  let main_graphic =
-    List.hd (String.split_on_char '.' entity.graphic)
-  in
-  string_combiner main_graphic (anim_decider right idle) anim_frame
+  else "error"
 
 let image_getter_render
     (entity : Common.entity)
@@ -31,10 +25,11 @@ let image_getter_render
   let source =
     try
       Hashtbl.find hashmap
-        (string_helper entity (entity.vx > 0.0)
-           (entity.vx = 0.0 && entity.vy = 0.0)
+        (string_combiner entity.graphic
+           (anim_decider (entity.vx > 0.0)
+              (entity.vx = 0.0 && entity.vy = 0.0))
            anim_frame)
-    with Not_found -> Hashtbl.find hashmap "error.png"
+    with Not_found -> Hashtbl.find hashmap "error"
   in
   Sdlvideo.blit_surface ~dst_rect:position_rect ~src:source ~dst:screen
     ()
