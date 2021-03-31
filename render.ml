@@ -16,11 +16,12 @@ let image_getter_render
     hashmap
     screen
     anim_frame
+    (w, h)
     (x, y) =
   let position_rect =
     Sdlvideo.rect
-      (int_of_float entity.x - 64 + 400 - int_of_float x)
-      (int_of_float entity.y - 64 + 300 - int_of_float y)
+      (int_of_float entity.x - 64 + (w / 2) - int_of_float x)
+      (int_of_float entity.y - 64 + (h / 2) - int_of_float y)
       100 100
   in
   let source =
@@ -52,7 +53,8 @@ let draw_background screen hashmap x y =
    every entity in world with the associated graphic in hashmap*)
 let run (world_state : Common.world_state) hashmap =
   let start_time = Sdltimer.get_ticks () in
-  let screen = Sdlvideo.set_video_mode 800 600 [ `DOUBLEBUF ] in
+  let w, h = (1920, 1080) in
+  let screen = Sdlvideo.set_video_mode w h [ `DOUBLEBUF ] in
   Thread.create Input_handler.key_checker world_state |> ignore;
   while true do
     let world = World_manager.get_local world_state 400.0 300.0 in
@@ -66,7 +68,8 @@ let run (world_state : Common.world_state) hashmap =
     (*TODO unsync animations?*)
     let anim_frame = (Sdltimer.get_ticks () - start_time) / 150 mod 4 in
     List.map
-      (fun e -> image_getter_render e hashmap screen anim_frame (x, y))
+      (fun e ->
+        image_getter_render e hashmap screen anim_frame (w, h) (x, y))
       world
     |> ignore;
     Sdlvideo.flip screen;
