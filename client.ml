@@ -46,7 +46,6 @@ let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
       Mutex.lock state.mutex;
       Array.blit noveau 0 state.data 0 len;
       let pair = (Option.get !(state.uuid), !(state.user_command)) in
-      state.user_command := Common.Nothing;
       Mutex.unlock state.mutex;
 
       (* User action transmit step *)

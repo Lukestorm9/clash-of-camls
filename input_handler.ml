@@ -19,7 +19,7 @@ let key_checker (world_state : Common.world_state) =
         mutex_helper world_state Common.Down
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_d } ->
         mutex_helper world_state Common.Left
-    | _ -> ()
+    | _ -> mutex_helper world_state Common.Nothing
   done
 
 (*lock mutex and set action related to key pressed then unlock*)
