@@ -6,7 +6,7 @@ let mutex_helper
   Mutex.unlock world_state.mutex
 
 let key_checker (world_state : Common.world_state) =
-  Sdlkey.enable_key_repeat ();
+  Sdlkey.enable_key_repeat ~delay:1 ~interval:1 ();
   while true do
     match Sdlevent.wait_event () with
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_ESCAPE } ->
