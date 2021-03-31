@@ -142,13 +142,13 @@ let network_loop (port, state) =
    replaced with something proper in a future version. *)
 let apply_physics_step time (state : world_state) i e : Common.entity =
   let now = Unix.gettimeofday () in
-  let delta = now -. time +. (3.14 /. 6. *. float_of_int i) in
+  let delta = ((now -. time) /. 3.) +. (3.14 /. 6. *. float_of_int i) in
   {
     e with
     x = 300. *. cos delta;
     y = 300. *. sin delta;
-    vx = -300. *. sin delta;
-    vy = 300. *. cos delta;
+    vx = -100. *. sin delta;
+    vy = 100. *. cos delta;
     last_direction_moved = -300. *. sin delta <= 0.;
   }
 
