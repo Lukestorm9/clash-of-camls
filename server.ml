@@ -84,8 +84,12 @@ let do_action state uuid action =
 let user_send_update_loop (conn, state) =
   let send_chan = Unix.out_channel_of_descr conn in
   let recv_chan = Unix.in_channel_of_descr conn in
-  let choice = Random.int 3 in
-  let model = List.nth [ "character"; "trader"; "trailer" ] choice in
+  let choice = Random.int 5 in
+  let model =
+    List.nth
+      [ "character"; "trader"; "trailer"; "camel"; "dromedary" ]
+      choice
+  in
   Mutex.lock state.mutex;
   let uuid = insert_entity state 0. 0. 0. 0. model 10. in
   Mutex.unlock state.mutex;
@@ -194,7 +198,7 @@ let start port =
   insert_entity state 0. 0. 0. 0. "trailer" 10. |> ignore;
   insert_entity state 0. 0. 0. 0. "trader" 10. |> ignore;
   insert_entity state 0. 0. 0. 0. "camel" 10. |> ignore;
-  insert_entity state 0. 0. 0. 0. "camel" 10. |> ignore;
+  insert_entity state 0. 0. 0. 0. "character" 10. |> ignore;
 
   ( Thread.create physics_loop state,
     Thread.create network_loop (port, state) )
