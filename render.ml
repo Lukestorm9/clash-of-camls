@@ -15,11 +15,12 @@ let image_getter_render
     (entity : Common.entity)
     hashmap
     screen
-    anim_frame =
+    anim_frame
+    (x, y) =
   let position_rect =
     Sdlvideo.rect
-      (int_of_float entity.x - 64 + 400)
-      (int_of_float entity.y - 64 + 300)
+      (int_of_float entity.x - 64 + 400 - int_of_float x)
+      (int_of_float entity.y - 64 + 300 - int_of_float y)
       100 100
   in
   let source =
@@ -35,6 +36,18 @@ let image_getter_render
   Sdlvideo.blit_surface ~dst_rect:position_rect ~src:source ~dst:screen
     ()
 
+let draw_background screen hashmap x y =
+  let map_position_rect =
+    Sdlvideo.rect
+      (int_of_float ((-1.0 *. x) -. (8192. /. 2.)))
+      (int_of_float ((-1.0 *. y) -. (8192. /. 2.)))
+      100 100
+  in
+  Sdlvideo.blit_surface ~dst_rect:map_position_rect
+    ~src:(Hashtbl.find hashmap "map.png")
+    ~dst:screen ();
+  ()
+
 (**[run] takes in world state and hashmap and renders the world map and
    every entity in world with the associated graphic in hashmap*)
 let run (world_state : Common.world_state) hashmap =
@@ -45,23 +58,15 @@ let run (world_state : Common.world_state) hashmap =
     let world = World_manager.get_local world_state 400.0 300.0 in
     let x, y =
       (* TODO: bad *)
-      World_manager.get_player_xy world_state |> fun _ ->
-      None |> Option.value ~default:(0., 0.)
+      World_manager.get_player_xy world_state
+      |> Option.value ~default:(0., 0.)
     in
-    let map_position_rect =
-      Sdlvideo.rect
-        (int_of_float (-1.0 *. x))
-        (int_of_float (-1.0 *. y))
-        100 100
-    in
-    Sdlvideo.blit_surface ~dst_rect:map_position_rect
-      ~src:(Hashtbl.find hashmap "map.png")
-      ~dst:screen ();
+    draw_background screen hashmap x y;
     let time_begin = Sdltimer.get_ticks () in
     (*TODO unsync animations?*)
     let anim_frame = (Sdltimer.get_ticks () - start_time) / 150 mod 4 in
     List.map
-      (fun x -> image_getter_render x hashmap screen anim_frame)
+      (fun e -> image_getter_render e hashmap screen anim_frame (x, y))
       world
     |> ignore;
     Sdlvideo.flip screen;

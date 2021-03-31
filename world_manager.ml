@@ -49,7 +49,11 @@ let xy (state : Common.world_state) =
           (fun (entity : Common.entity) -> entity.uuid = uuid)
           state.data
       in
-      match candidates with [] -> None | h :: _ -> Some (h.x, h.y) )
+      match candidates with
+      | [] -> None
+      | h :: _ ->
+          let corrected = modify_h h in
+          Some (corrected.x, corrected.y) )
   | None -> None
 
 let get_player_xy (state : Common.world_state) =
