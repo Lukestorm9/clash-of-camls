@@ -104,7 +104,7 @@ let user_send_update_loop (conn, state) =
     flush send_chan;
 
     while true do
-      Thread.delay 0.05;
+      Thread.delay 0.025;
       (* State read step *)
       Mutex.lock state.mutex;
       let copy = Array.copy state.data in
