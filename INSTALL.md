@@ -8,7 +8,7 @@ On Mac, given [homebrew](https://brew.sh), it should probably be sufficient to r
 
 On Ubuntu, it is something like: `sudo apt update` and then `sudo apt install libsdl1.2debian libsdl-gfx1.2-5 libsdl-image1.2 libsdl-image1.2-dev libsdl-mixer1.2 libsdl-mixer1.2-dev libsdl-sound1.2 libsdl-sound1.2-dev libsdl-ttf2.0-0 libsdl-ttf2.0-dev`.
 
-Once you have sdl, you will need to install the relevant opam packages: `opam install ounit2 ocamlsdl`. If, at this stage, there are syntax highlighting problems or the code does not compile, this probably means that the distro package list above is incomplete. In that case, `ocamlsdl` will build, but it will **not** notify you that it lacks the necessary depends, and will thus simply build "successfully" but without the necessary modules.
+Once you have sdl, you will need to install the relevant opam packages: `opam install ounit2 ocamlsdl`. If at this stage the code does not compile, this probably means that the distro package list above is incomplete. In that case, `ocamlsdl` will build, but it will **not** notify you that it lacks the necessary depends, and will thus simply build "successfully" but without the necessary modules.
 
 <details>
 
