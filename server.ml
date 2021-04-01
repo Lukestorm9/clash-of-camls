@@ -55,23 +55,11 @@ let do_action state uuid action =
     let noveau =
       match action with
       | Common.Left ->
-          Some
-            {
-              e with
-              x = e.x +. 10.;
-              vx = 10.;
-              last_direction_moved = false;
-            }
+          Some { e with vx = 200.; last_direction_moved = false }
       | Common.Right ->
-          Some
-            {
-              e with
-              x = e.x -. 10.;
-              vx = -10.;
-              last_direction_moved = true;
-            }
-      | Common.Up -> Some { e with y = e.y -. 10.; vy = -10. }
-      | Common.Down -> Some { e with y = e.y +. 10.; vy = 10. }
+          Some { e with vx = -200.; last_direction_moved = true }
+      | Common.Up -> Some { e with vy = -200. }
+      | Common.Down -> Some { e with vy = 200. }
       | Common.Nothing -> Some { e with vx = 0.; vy = 0. }
     in
     state.data.(idex) <- noveau
@@ -141,10 +129,10 @@ let network_loop (port, state) =
   done;
   ()
 
-(* Compute physics for a single object at a single time. This is an
+(* Compute AI movement for a single object at a single time. This is an
    immutable operation, and a new object is returned. TODO: This will be
    replaced with something proper in a future version. *)
-let apply_physics_step time (state : world_state) i e : Common.entity =
+let apply_ai_step time (state : world_state) i e : Common.entity =
   let now = Unix.gettimeofday () in
   let delta = ((now -. time) /. 3.) +. (3.14 /. 6. *. float_of_int i) in
   {
@@ -156,12 +144,22 @@ let apply_physics_step time (state : world_state) i e : Common.entity =
     last_direction_moved = -300. *. sin delta <= 0.;
   }
 
+let apply_physics_step time (state : world_state) i (e : Common.entity)
+    : Common.entity =
+  let now = Unix.gettimeofday () in
+  {
+    e with
+    x = e.x +. (e.vx *. (Unix.gettimeofday () -. e.time_sent_over));
+    y = e.y +. (e.vy *. (Unix.gettimeofday () -. e.time_sent_over));
+    time_sent_over = now;
+  }
+
 (* Only do physics operations on objects which exist *)
 let filter_objects time state i = function
   | None -> None
   | Some e ->
-      if i <= 4 then Some (apply_physics_step time state i e)
-      else Some e
+      if i <= 4 then Some (apply_ai_step time state i e)
+      else Some (apply_physics_step time state i e)
 
 (* The physics loop, which is running all the time in the background.
    Set to run at approx 20 ticks per second. TODO: make time exact. *)
