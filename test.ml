@@ -15,6 +15,8 @@ let rec print_entity acc (entity_list : Common.entity list) =
         ^ string_of_float h.time_sent_over
         ^ ", " ^ "graphic = " ^ h.graphic ^ ", " ^ "health = "
         ^ string_of_float h.health
+        ^ "last_direction_moved = "
+        ^ string_of_bool h.last_direction_moved
         ^ " }" ^ ";\n"
       in
       print_entity (entity ^ acc) t
@@ -252,11 +254,11 @@ let world_manager_tests =
       world_1
       (Some (0., 0.));
     (*correctly identify Option pair given multiple options*)
-     world_manager_get_player_xy_tests
-       "Testing get_player_xy with world_2 | uuid = 3 and entity_3 \
-        matches"
-       world_2
-       (Some (entity_3'.x, entity_3'.y));
+    world_manager_get_player_xy_tests
+      "Testing get_player_xy with world_2 | uuid = 3 and entity_3 \
+       matches"
+      world_2
+      (Some (entity_3'.x, entity_3'.y));
   ]
 
 let suite =
