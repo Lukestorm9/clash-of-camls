@@ -1,4 +1,4 @@
-MODULES=main common client server
+MODULES=main common client server world_manager input_handler
 OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)

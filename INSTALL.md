@@ -1,10 +1,10 @@
 ### Installation
 
-Make sure that you have OCaml and Ocamlbuild running on your system. Additionally, it requires sdl. Depending on your OS, this is a different process. Check your package manager. E.g. :
+On Mac, given [homebrew](https://brew.sh), which can be installed with `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"` it should probably be sufficient to run `brew install sdl sdl_image sdl_ttf sdl_mixer sdl_gfx`. **Make sure you do not install sdl2.** Worst case scenario, SDL 1.2 can be built from source [here](https://github.com/libsdl-org/SDL-1.2). See the MacOS and MacOSX readmes depending on Mac flavor.
 
-On Arch, it is something like: `yay -S sdl sdl_image sdl_ttf sdl_mixer`. Make sure you do **not** install sdl2. It will not work with `ocamlsdl`. At the end, `sdl-config --version` should be 1.2.xx.
+Make sure that you have OCaml and Ocamlbuild running on your system. Additionally, it requires sdl. Depending on your OS, this is a different process. Check your package manager. E.g.:
 
-On Mac, given [homebrew](https://brew.sh), it should probably be sufficient to run `brew install sdl` (this is as yet untested). Homebrew does not seem to have additional development packages for sdl. Worst case scenario, SDL 1.2 can be built from source [here](https://github.com/libsdl-org/SDL-1.2). See the MacOS and MacOSX readmes depending on Mac flavor.
+On Arch, it is something like: `yay -S sdl sdl_image sdl_ttf sdl_mixer`. It will not work with `ocamlsdl`. At the end, `sdl-config --version` should be 1.2.xx.
 
 On Ubuntu, it is something like: `sudo apt update` and then `sudo apt install libsdl1.2debian libsdl-gfx1.2-5 libsdl-image1.2 libsdl-image1.2-dev libsdl-mixer1.2 libsdl-mixer1.2-dev libsdl-sound1.2 libsdl-sound1.2-dev libsdl-ttf2.0-0 libsdl-ttf2.0-dev`.
 

@@ -1,3 +1,4 @@
 setup.data
 _build/
 *.byte
+*.zip
