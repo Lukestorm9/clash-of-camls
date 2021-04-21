@@ -9,6 +9,8 @@ type entity = {
   graphic : string;
   health : float;
   last_direction_moved : bool;
+  inventory: string list; 
+  points: int;
 }
 
 type action =

@@ -31,6 +31,8 @@ let insert_entity state x y vx vy graphic health =
       graphic;
       health;
       last_direction_moved = false;
+      inventory = [];
+      points = 0;
     }
   in
   match find_next_open state.data with
@@ -192,11 +194,11 @@ let start port =
   in
   (* TODO: remove these -- In MS2, these will be replaced by random
      generation algorithm *)
-  insert_entity state 0. 0. 0. 0. "dromedary" 10. |> ignore;
-  insert_entity state 0. 0. 0. 0. "trailer" 10. |> ignore;
-  insert_entity state 0. 0. 0. 0. "trader" 10. |> ignore;
-  insert_entity state 0. 0. 0. 0. "camel" 10. |> ignore;
-  insert_entity state 0. 0. 0. 0. "character" 10. |> ignore;
+  insert_entity state 0. 0. 0. 0. "dromedary" 10. |> ignore |> ignore |> ignore;
+  insert_entity state 0. 0. 0. 0. "trailer" 10. |> ignore |> ignore |> ignore;
+  insert_entity state 0. 0. 0. 0. "trader" 10. |> ignore |> ignore |> ignore;
+  insert_entity state 0. 0. 0. 0. "camel" 10. |> ignore |> ignore |> ignore  ;
+  insert_entity state 0. 0. 0. 0. "character" 10.|> ignore |> ignore |> ignore;
 
   ( Thread.create physics_loop state,
     Thread.create network_loop (port, state) )

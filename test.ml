@@ -1,6 +1,12 @@
 open OUnit2
 open World_manager
 
+let rec print_string_list lst acc =
+  match lst with
+  | [] -> acc
+  | [ h ] -> "[" ^ acc ^ h ^ "]"
+  | h :: t -> print_string_list t (acc ^ h ^ ", ")
+
 (*[print_entity] prints the given entity_list. An entity is defined in
   Common.mli*)
 let rec print_entity acc (entity_list : Common.entity list) =
@@ -15,9 +21,11 @@ let rec print_entity acc (entity_list : Common.entity list) =
         ^ string_of_float h.time_sent_over
         ^ ", " ^ "graphic = " ^ h.graphic ^ ", " ^ "health = "
         ^ string_of_float h.health
-        ^ "last_direction_moved = "
+        ^ ", " ^ "last_direction_moved = "
         ^ string_of_bool h.last_direction_moved
-        ^ " }" ^ ";\n"
+        ^ ", " ^ "inventory = "
+        ^ print_string_list h.inventory ""
+        ^ ", " ^ "points = " ^ string_of_int h.points ^ " }" ^ ";\n"
       in
       print_entity (entity ^ acc) t
 
@@ -111,6 +119,17 @@ let world_manager_get_player_xy_tests
     (World_manager.get_player_xy state)
     ~cmp:check_within_bounds_float_pair ~printer:print_float_pair_option
 
+let world_manager_get_local_enemies_tests
+    (name : string)
+    (state : Common.world_state)
+    (entity : Common.entity)
+    radius
+    (expected_output : Common.entity list) : test =
+  name >:: fun _ ->
+  assert_equal expected_output
+    (World_manager.get_local_enemies state entity radius)
+    ~printer:(print_entity "")
+
 let world_state_maker ~data ~mutex ~uuid ~user_command :
     Common.world_state =
   { data; mutex; uuid; user_command }
@@ -124,7 +143,9 @@ let entity_maker
     ~time_sent_over
     ~graphic
     ~health
-    ~last_direction_moved : Common.entity =
+    ~last_direction_moved
+    ~inventory
+    ~points : Common.entity =
   {
     uuid;
     x;
@@ -135,28 +156,33 @@ let entity_maker
     graphic;
     health;
     last_direction_moved;
+    inventory;
+    points;
   }
 
 let (non_moving_entity_at_origin : Common.entity) =
-  entity_maker 1 0. 0. 0. 0. 0. "camel" 0. false
+  entity_maker 1 0. 0. 0. 0. 0. "camel" 0. false [] 0
 
 let (moving_entity_at_origin : Common.entity) =
-  entity_maker 2 0. 0. 5. 5. 1. "camel" 0. false
+  entity_maker 2 0. 0. 5. 5. 1. "camel" 0. false [] 0
 
 let (moving_entity_at_origin' : Common.entity) =
   entity_maker 0
     (0. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
     (0. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
-    5. 5. 1. "camel" 0. false
+    5. 5. 1. "camel" 0. false [] 0
 
 let (entity_3 : Common.entity) =
-  entity_maker 3 (-100.) 90. 5. 5. 1. "camel" 0. false
+  entity_maker 3 (-100.) 90. 5. 5. 1. "camel" 0. false [] 0
 
 let (entity_3' : Common.entity) =
   entity_maker 3
     (-100. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
     (90. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
-    5. 5. 1. "camel" 0. false
+    5. 5. 1. "camel" 0. false [] 0
+
+let entity_4 : Common.entity =
+  entity_maker 4 0. 3. 5. 5. 1. "camel" 0. true [] 0
 
 let (empty_world : Common.world_state) =
   world_state_maker [||] (Mutex.create ()) (ref (Some 0))
@@ -194,7 +220,19 @@ let (world_3 : Common.world_state) =
     |]
     (Mutex.create ()) (ref (Some 4)) (ref Common.Nothing)
 
+let world_4 : Common.world_state =
+  world_state_maker
+    [|
+      Some non_moving_entity_at_origin;
+      Some moving_entity_at_origin;
+      Some entity_3;
+      Some entity_4;
+    |]
+    (Mutex.create ()) (ref (Some 4)) (ref Common.Nothing)
+
 let boundary_point = sqrt ((250000. ** 2.) /. 2.)
+
+let boundary_point_2 = sqrt 18100.
 
 let world_manager_tests =
   [
@@ -259,6 +297,44 @@ let world_manager_tests =
        matches"
       world_2
       (Some (entity_3'.x, entity_3'.y));
+    world_manager_get_local_enemies_tests
+      "Trying to find an enemy on an empty with radius 1." empty_world
+      non_moving_entity_at_origin 1. [];
+    world_manager_get_local_enemies_tests
+      "Trying to find an enemy on world_2 | r= 0, entity= \
+       non_moving-entity_at_orgin | Annotation: with two entities at \
+       same location "
+      world_2 non_moving_entity_at_origin 0.
+      [ moving_entity_at_origin ];
+    world_manager_get_local_enemies_tests
+      "Trying to find an enemy on world_2 | r= 100.0, entity= entity_3"
+      world_2 entity_3 100.0 [];
+    world_manager_get_local_enemies_tests
+      "Trying to find enemies on world_2 | r=boundary_point_2 - 0.001, \
+       entity= entity_3"
+      world_2 entity_3
+      (boundary_point_2 -. 0.001)
+      [];
+    world_manager_get_local_enemies_tests
+      "Trying to find enemies on world_2 | r=boundary_point_2, entity= \
+       entity_3"
+      world_2 entity_3 boundary_point_2
+      [ moving_entity_at_origin; non_moving_entity_at_origin ];
+    world_manager_get_local_enemies_tests
+      "Trying to find enemies on world_2 | r=boundary_point_2 + 0.001, \
+       entity= entity_3"
+      world_2 entity_3
+      (boundary_point_2 +. 0.001)
+      [ moving_entity_at_origin; non_moving_entity_at_origin ];
+    world_manager_get_local_enemies_tests
+      "Trying to find enemies on world_4 | r= 0., entity= entity_4 | \
+       Annotation: entity_4 is facing in true direction"
+      world_4 entity_4 0. [];
+    world_manager_get_local_enemies_tests
+      "Trying to find enemies on world_4 | r= 100000000., entity= \
+       entity_4 | Annotation: entity_4 is facing in true direction, \
+       check if direction is being filtered for"
+      world_4 entity_4 100000000. [];
   ]
 
 let suite =

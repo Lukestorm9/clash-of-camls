@@ -26,6 +26,10 @@ type entity = {
   health : float;
   (* The last direction moved -- in particular, true iff right*)
   last_direction_moved : bool;
+  (*The inventory associated with this entity*)
+  inventory : string list;
+  (*The points of the entity*)
+  points : int;
 }
 
 type action =
