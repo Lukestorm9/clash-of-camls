@@ -3,10 +3,26 @@
    to compile, they have to be repeated in common.ml, otherwise we would
    not give them there.*)
 
+(* The type of the entity *)
+type entity_type =
+  | Physik
+  | Ai
+  | Player
+
+(* A weapon type *)
+type weapon = {
+  name : string;
+  range : float;
+  damage : float;
+  cooldown : float;
+}
+
 (* [entity] represents an entity, as it is represented on both the
    client and the server. This dualism is important, as otherwise
    Marshall-ing would not be so easy.*)
 type entity = {
+  (*whether or not this is an AI controlled entity *)
+  kind : entity_type;
   (* The universally unique id associated with this entity. Guaranteed
      never to change over the lifecycle of the entity.*)
   uuid : int;
@@ -24,12 +40,16 @@ type entity = {
   graphic : string;
   (* The health of the entity *)
   health : float;
+  (* The max health this kind of entity can heal to*)
+  max_health : float;
   (* The last direction moved -- in particular, true iff right*)
   last_direction_moved : bool;
   (*The inventory associated with this entity*)
-  inventory : string list;
+  inventory : weapon list;
   (*The points of the entity*)
   points : int;
+  (* last time entity did attack *)
+  last_attack_time : float;
 }
 
 type action =

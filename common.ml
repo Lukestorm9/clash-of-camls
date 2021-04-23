@@ -1,5 +1,18 @@
 (* copy of the definition in common.mli *)
+type entity_type =
+  | Physik
+  | Ai
+  | Player
+
+type weapon = {
+  name : string;
+  range : float;
+  damage : float;
+  cooldown : float;
+}
+
 type entity = {
+  kind : entity_type;
   uuid : int;
   x : float;
   y : float;
@@ -8,9 +21,11 @@ type entity = {
   time_sent_over : float;
   graphic : string;
   health : float;
+  max_health : float;
   last_direction_moved : bool;
-  inventory: string list; 
-  points: int;
+  inventory : weapon list;
+  points : int;
+  last_attack_time : float;
 }
 
 type action =
@@ -20,7 +35,6 @@ type action =
   | Up
   | Down
 
-(* copy of the definition in common.mli *)
 type world_state = {
   data : entity option array;
   uuid : int option ref;

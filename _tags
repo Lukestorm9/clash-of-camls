@@ -1,1 +1,1 @@
-true: package(ounit2),package(sdl),package(bigarray),package(sdl.sdlimage),package(sdl.sdlttf),package(sdl.sdlmixer)
+true: package(ounit2),package(sdl),package(bigarray),package(sdl.sdlimage),package(sdl.sdlttf),package(sdl.sdlmixer),package(yojson)

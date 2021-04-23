@@ -17,11 +17,12 @@ let find_next_open array =
 (* Construct a new entity with the desired qualities, then insert it
    into the world state. Requires the state mutex to be locked on the
    current thread BEFORE this method is called.*)
-let insert_entity state x y vx vy graphic health =
+let insert_entity state kind x y vx vy graphic health =
   let uuid = !(state.highest_uuid) + 1 in
   let now = Unix.gettimeofday () in
   let entity : Common.entity =
     {
+      kind;
       uuid;
       x;
       y;
@@ -30,9 +31,11 @@ let insert_entity state x y vx vy graphic health =
       time_sent_over = now;
       graphic;
       health;
+      max_health = health;
       last_direction_moved = false;
       inventory = [];
       points = 0;
+      last_attack_time = 0.;
     }
   in
   match find_next_open state.data with
@@ -81,7 +84,7 @@ let user_send_update_loop (conn, state) =
       choice
   in
   Mutex.lock state.mutex;
-  let uuid = insert_entity state 0. 0. 0. 0. model 100. in
+  let uuid = insert_entity state Player 0. 0. 0. 0. model 10. in
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
   if Option.is_none uuid then ();
@@ -131,37 +134,57 @@ let network_loop (port, state) =
   done;
   ()
 
+let update_min_dist last (e1 : Common.entity) (e2 : Common.entity) =
+  match e1.kind with
+  | Player ->
+      let dx = e1.x -. e2.x in
+      let dy = e1.y -. e2.y in
+      let dst2 = (dx *. dx) +. (dy *. dy) in
+      if dst2 < (last |> fst) then (dst2, Some e1) else last
+  | _ -> last
+
 (* Compute AI movement for a single object at a single time. This is an
    immutable operation, and a new object is returned. TODO: This will be
    replaced with something proper in a future version. *)
-let apply_ai_step time (state : world_state) i e : Common.entity =
-  let now = Unix.gettimeofday () in
-  let delta = ((now -. time) /. 3.) +. (3.14 /. 6. *. float_of_int i) in
-  {
-    e with
-    x = 300. *. cos delta;
-    y = 300. *. sin delta;
-    vx = -100. *. sin delta;
-    vy = 100. *. cos delta;
-    last_direction_moved = -300. *. sin delta <= 0.;
-  }
+let apply_ai_step time state i e : Common.entity =
+  let delta = time -. Unix.gettimeofday () +. float_of_int i in
+  let closest = ref (250000., None) in
+  Array.iter
+    (function
+      | Some entity -> closest := update_min_dist !closest entity e
+      | None -> ())
+    state;
+  match !closest |> snd with
+  | Some closest ->
+      let dx = closest.x -. e.x in
+      let dy = closest.y -. e.y in
+      let norm = sqrt ((dx *. dx) +. (dy *. dy) +. 1.) in
+      let dvx = 100. *. dx /. norm in
+      let dvy = 100. *. dy /. norm in
+      { e with vx = dvx; vy = dvy }
+  | None -> { e with vx = 40. *. sin delta; vy = 40. *. cos delta }
 
-let apply_physics_step time (state : world_state) i (e : Common.entity)
-    : Common.entity =
+let apply_physics_step time i (e : Common.entity) : Common.entity =
   let now = Unix.gettimeofday () in
+  string_of_float e.x ^ " " ^ string_of_float e.y |> print_endline;
   {
     e with
     x = e.x +. (e.vx *. (Unix.gettimeofday () -. e.time_sent_over));
     y = e.y +. (e.vy *. (Unix.gettimeofday () -. e.time_sent_over));
+    last_direction_moved = e.vx < 0.;
     time_sent_over = now;
   }
 
 (* Only do physics operations on objects which exist *)
-let filter_objects time state i = function
+let filter_objects time state i (e : Common.entity option) =
+  match e with
   | None -> None
-  | Some e ->
-      if i <= 4 then Some (apply_ai_step time state i e)
-      else Some (apply_physics_step time state i e)
+  | Some e -> (
+      match e.kind with
+      | Ai ->
+          Some
+            (apply_ai_step time state i e |> apply_physics_step time i)
+      | Player | Physik -> Some (apply_physics_step time i e) )
 
 (* The physics loop, which is running all the time in the background.
    Set to run at approx 20 ticks per second. TODO: make time exact. *)
@@ -173,7 +196,7 @@ let physics_loop state =
     let copy = Array.copy state.data in
     Mutex.unlock state.mutex;
 
-    let noveau = Array.mapi (filter_objects start state) copy in
+    let noveau = Array.mapi (filter_objects start copy) copy in
 
     Mutex.lock state.mutex;
     let len = Array.length noveau in
@@ -194,11 +217,16 @@ let start port =
   in
   (* TODO: remove these -- In MS2, these will be replaced by random
      generation algorithm *)
-  insert_entity state 0. 0. 0. 0. "dromedary" 10. |> ignore |> ignore |> ignore;
-  insert_entity state 0. 0. 0. 0. "trailer" 10. |> ignore |> ignore |> ignore;
-  insert_entity state 0. 0. 0. 0. "trader" 10. |> ignore |> ignore |> ignore;
-  insert_entity state 0. 0. 0. 0. "camel" 10. |> ignore |> ignore |> ignore  ;
-  insert_entity state 0. 0. 0. 0. "character" 10.|> ignore |> ignore |> ignore;
+  insert_entity state Ai 0. 0. 0. 0. "dromedary" 10.
+  |> ignore |> ignore |> ignore;
+  insert_entity state Ai 0. 0. 0. 0. "trailer" 10.
+  |> ignore |> ignore |> ignore;
+  insert_entity state Ai 0. 0. 0. 0. "trader" 10.
+  |> ignore |> ignore |> ignore;
+  insert_entity state Ai 0. 0. 0. 0. "camel" 10.
+  |> ignore |> ignore |> ignore;
+  insert_entity state Ai 0. 0. 0. 0. "character" 10.
+  |> ignore |> ignore |> ignore;
 
   ( Thread.create physics_loop state,
     Thread.create network_loop (port, state) )

@@ -145,8 +145,10 @@ let entity_maker
     ~health
     ~last_direction_moved
     ~inventory
-    ~points : Common.entity =
+    ~points
+    ~last_attack_time : Common.entity =
   {
+    kind = Common.Physik;
     uuid;
     x;
     y;
@@ -155,34 +157,37 @@ let entity_maker
     time_sent_over;
     graphic;
     health;
+    max_health = health;
     last_direction_moved;
     inventory;
     points;
+    last_attack_time;
   }
 
 let (non_moving_entity_at_origin : Common.entity) =
-  entity_maker 1 0. 0. 0. 0. 0. "camel" 0. false [] 0
+  entity_maker 1 0. 0. 0. 0. 0. "camel" 0. false [] 0 0.
 
 let (moving_entity_at_origin : Common.entity) =
-  entity_maker 2 0. 0. 5. 5. 1. "camel" 0. false [] 0
+  entity_maker 2 0. 0. 5. 5. 1. "camel" 0. false [] 0 0.
 
 let (moving_entity_at_origin' : Common.entity) =
   entity_maker 0
     (0. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
     (0. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
-    5. 5. 1. "camel" 0. false [] 0
+    5. 5. 1. "camel" 0. false [] 0 0.
 
 let (entity_3 : Common.entity) =
-  entity_maker 3 (-100.) 90. 5. 5. 1. "camel" 0. false [] 0
+  entity_maker 3 (-100.) 90. 5. 5. 1. "camel" 0. false [] 0 0.
 
 let (entity_3' : Common.entity) =
   entity_maker 3
     (-100. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
+    0.
     (90. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
     5. 5. 1. "camel" 0. false [] 0
 
 let entity_4 : Common.entity =
-  entity_maker 4 0. 3. 5. 5. 1. "camel" 0. true [] 0
+  entity_maker 4 0. 3. 5. 5. 1. "camel" 0. true [] 0 0.
 
 let (empty_world : Common.world_state) =
   world_state_maker [||] (Mutex.create ()) (ref (Some 0))
@@ -264,12 +269,12 @@ let world_manager_tests =
       entities, however the moving entity should be changed to where it
       is predicated to be (i.e. it should apply get_local's location
       smoothing)*)
-    (Thread.delay (1. /. 4.);
-     world_manager_get_local_tests
-       "Using world_1 with (0,0) | Expect all two entities: one \
-        non-moving and one moving"
-       world_1 0. 0.
-       [ non_moving_entity_at_origin; moving_entity_at_origin' ]);
+    ( Thread.delay (1. /. 4.);
+      world_manager_get_local_tests
+        "Using world_1 with (0,0) | Expect all two entities: one \
+         non-moving and one moving"
+        world_1 0. 0.
+        [ non_moving_entity_at_origin; moving_entity_at_origin' ] );
     (*see if it returns "None" when uuid is not found in the given zero
       entities*)
     world_manager_get_player_xy_tests
