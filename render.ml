@@ -62,7 +62,8 @@ let image_getter_render
   in
   Sdlvideo.blit_surface ~dst_rect:position_rect ~src:source ~dst:screen
     ();
-  draw_health screen hashmap x_coord y_coord health 100.0
+  if entity.kind = Player || entity.kind = Ai then
+    draw_health screen hashmap x_coord y_coord health entity.max_health
 
 (*NEED max_health*)
 
@@ -95,10 +96,12 @@ let run (world_state : Common.world_state) hashmap =
     draw_background screen hashmap x y;
     let time_begin = Sdltimer.get_ticks () in
     (*TODO unsync animations?*)
-    let anim_frame = (Sdltimer.get_ticks () - start_time) / 150 mod 4 in
-    List.map
-      (fun e ->
-        image_getter_render e hashmap screen anim_frame (w, h) (x, y))
+    let anim_frame = (Sdltimer.get_ticks () - start_time) / 150 in
+    List.mapi
+      (fun i e ->
+        image_getter_render e hashmap screen
+          ((anim_frame + i) mod 4)
+          (w, h) (x, y))
       world
     |> ignore;
     Sdlvideo.flip screen;

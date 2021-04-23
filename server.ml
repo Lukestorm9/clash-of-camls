@@ -84,7 +84,7 @@ let user_send_update_loop (conn, state) =
       choice
   in
   Mutex.lock state.mutex;
-  let uuid = insert_entity state Player 0. 0. 0. 0. model 10. in
+  let uuid = insert_entity state Player 0. 0. 0. 0. model 100. in
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
   if Option.is_none uuid then ();
@@ -223,13 +223,13 @@ let start port =
   in
   (* TODO: remove these -- In MS2, these will be replaced by random
      generation algorithm *)
-  insert_entity state Ai 500. 0. 0. 0. "dromedary" 10.
+  insert_entity state Ai 500. 0. 0. 0. "dromedary" 50.
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai (-500.) 0. 0. 0. "trailer" 10.
+  insert_entity state Ai (-500.) 0. 0. 0. "trailer" 50.
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. 500. 0. 0. "trader" 10.
+  insert_entity state Ai 0. 500. 0. 0. "trader" 50.
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. (-500.) 0. 0. "camel" 10.
+  insert_entity state Ai 0. (-500.) 0. 0. "camel" 50.
   |> ignore |> ignore |> ignore;
 
   ( Thread.create physics_loop state,
