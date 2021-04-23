@@ -198,12 +198,9 @@ let physics_loop state =
   while true do
     Thread.delay 0.05;
     Mutex.lock state.mutex;
-    let copy = Array.copy state.data in
-    Mutex.unlock state.mutex;
-
-    let noveau = Array.mapi (filter_objects start copy) copy in
-
-    Mutex.lock state.mutex;
+    let noveau =
+      Array.mapi (filter_objects start state.data) state.data
+    in
     let len = Array.length noveau in
     Array.blit noveau 0 state.data 0 len;
     Mutex.unlock state.mutex
