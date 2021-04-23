@@ -147,7 +147,8 @@ let update_min_dist last (e1 : Common.entity) (e2 : Common.entity) =
    immutable operation, and a new object is returned. TODO: This will be
    replaced with something proper in a future version. *)
 let apply_ai_step time state i e : Common.entity =
-  let delta = time -. Unix.gettimeofday () +. float_of_int i in
+  let i = float_of_int i in
+  let delta = time -. Unix.gettimeofday () +. i in
   let closest = ref (250000., None) in
   Array.iter
     (function
@@ -162,7 +163,12 @@ let apply_ai_step time state i e : Common.entity =
       let dvx = 100. *. dx /. norm in
       let dvy = 100. *. dy /. norm in
       { e with vx = dvx; vy = dvy }
-  | None -> { e with vx = 40. *. sin delta; vy = 40. *. cos delta }
+  | None ->
+      {
+        e with
+        vx = (40. *. sin delta) +. (5. *. sin i);
+        vy = (40. *. cos delta) +. (5. *. cos i);
+      }
 
 let apply_physics_step time i (e : Common.entity) : Common.entity =
   let now = Unix.gettimeofday () in
@@ -217,15 +223,13 @@ let start port =
   in
   (* TODO: remove these -- In MS2, these will be replaced by random
      generation algorithm *)
-  insert_entity state Ai 0. 0. 0. 0. "dromedary" 10.
+  insert_entity state Ai 500. 0. 0. 0. "dromedary" 10.
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. 0. 0. 0. "trailer" 10.
+  insert_entity state Ai (-500.) 0. 0. 0. "trailer" 10.
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. 0. 0. 0. "trader" 10.
+  insert_entity state Ai 0. 500. 0. 0. "trader" 10.
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. 0. 0. 0. "camel" 10.
-  |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. 0. 0. 0. "character" 10.
+  insert_entity state Ai 0. (-500.) 0. 0. "camel" 10.
   |> ignore |> ignore |> ignore;
 
   ( Thread.create physics_loop state,
