@@ -172,7 +172,6 @@ let apply_ai_step time state i e : Common.entity =
 
 let apply_physics_step time i (e : Common.entity) : Common.entity =
   let now = Unix.gettimeofday () in
-  string_of_float e.x ^ " " ^ string_of_float e.y |> print_endline;
   {
     e with
     x = e.x +. (e.vx *. (Unix.gettimeofday () -. e.time_sent_over));
