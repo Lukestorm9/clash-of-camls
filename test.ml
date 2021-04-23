@@ -1,3 +1,22 @@
+(** This this section outlines the test plan.
+
+    1. Parts of the system were automatically tested by OUnit vs.
+    manually tested: We test the [World Manager] functions using OUnit
+    testing. [Render], [Client], and parts of [Client] are te test
+    manually as there is good way to test the functions those modules.
+    [World Manager] has functions that well-suited for testing using the
+    OUnit suite, thus it was not manually tested.
+
+    2. Modules were tested by OUnit and how test cases were developed
+    (black box, glass box, randomized, etc.): The tests for
+    [World Manager] is tests for black box testing. The tests attempt to
+    ensure that the fucntions to not return outputs that are unintended.
+    The test for [World Manager] attempt to see that the out is as
+    intended by the documentation.
+
+    3. An argument for why the testing approach demonstrates the
+    correctness of the system: *)
+
 open OUnit2
 open World_manager
 
@@ -7,6 +26,25 @@ let rec print_string_list lst acc =
   | [ h ] -> "[" ^ acc ^ h ^ "]"
   | h :: t -> print_string_list t (acc ^ h ^ ", ")
 
+let print_entity_type (kind : Common.entity_type) =
+  if kind = Physik then "Physik"
+  else if kind = Ai then "Ai"
+  else "Player"
+
+let rec print_weapons (weapons_list : Common.weapon list) acc =
+  match weapons_list with
+  | [] -> "[\n" ^ acc ^ " ]"
+  | h :: t ->
+      let weapon =
+        "{ " ^ "name = " ^ h.name ^ ", " ^ "range = "
+        ^ string_of_float h.range ^ ", " ^ "damage = "
+        ^ string_of_float h.damage
+        ^ ", " ^ "cooldown = "
+        ^ string_of_float h.cooldown
+        ^ " }" ^ ";\n"
+      in
+      print_weapons t (weapon ^ acc)
+
 (*[print_entity] prints the given entity_list. An entity is defined in
   Common.mli*)
 let rec print_entity acc (entity_list : Common.entity list) =
@@ -14,18 +52,25 @@ let rec print_entity acc (entity_list : Common.entity list) =
   | [] -> "[\n" ^ acc ^ " ]"
   | h :: t ->
       let entity =
-        "{ " ^ "uuid = " ^ string_of_int h.uuid ^ ", " ^ "x = "
+        "{ " ^ "kind = "
+        ^ print_entity_type h.kind
+        ^ ", " ^ "uuid = " ^ string_of_int h.uuid ^ ", " ^ "x = "
         ^ string_of_float h.x ^ ", " ^ "y = " ^ string_of_float h.y
         ^ ", " ^ "vx = " ^ string_of_float h.vx ^ ", " ^ "vy = "
         ^ string_of_float h.vy ^ ", " ^ "time_sent_over = "
         ^ string_of_float h.time_sent_over
         ^ ", " ^ "graphic = " ^ h.graphic ^ ", " ^ "health = "
         ^ string_of_float h.health
+        ^ ", " ^ "max_health = "
+        ^ string_of_float h.max_health
         ^ ", " ^ "last_direction_moved = "
         ^ string_of_bool h.last_direction_moved
         ^ ", " ^ "inventory = "
-        ^ print_string_list h.inventory ""
-        ^ ", " ^ "points = " ^ string_of_int h.points ^ " }" ^ ";\n"
+        ^ print_weapons h.inventory ""
+        ^ ", " ^ "points = " ^ string_of_int h.points ^ ", "
+        ^ "last_attack_time = "
+        ^ string_of_float h.last_attack_time
+        ^ " }" ^ ";\n"
       in
       print_entity (entity ^ acc) t
 
@@ -135,6 +180,7 @@ let world_state_maker ~data ~mutex ~uuid ~user_command :
   { data; mutex; uuid; user_command }
 
 let entity_maker
+    ~kind
     ~uuid
     ~x
     ~y
@@ -148,7 +194,7 @@ let entity_maker
     ~points
     ~last_attack_time : Common.entity =
   {
-    kind = Common.Physik;
+    kind;
     uuid;
     x;
     y;
@@ -165,29 +211,29 @@ let entity_maker
   }
 
 let (non_moving_entity_at_origin : Common.entity) =
-  entity_maker 1 0. 0. 0. 0. 0. "camel" 0. false [] 0 0.
+  entity_maker Common.Player 1 0. 0. 0. 0. 0. "camel" 0. false [] 0 0.
 
 let (moving_entity_at_origin : Common.entity) =
-  entity_maker 2 0. 0. 5. 5. 1. "camel" 0. false [] 0 0.
+  entity_maker Common.Player 2 0. 0. 5. 5. 1. "camel" 0. false [] 0 0.
 
 let (moving_entity_at_origin' : Common.entity) =
-  entity_maker 0
+  entity_maker Common.Player 0
     (0. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
     (0. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
     5. 5. 1. "camel" 0. false [] 0 0.
 
 let (entity_3 : Common.entity) =
-  entity_maker 3 (-100.) 90. 5. 5. 1. "camel" 0. false [] 0 0.
+  entity_maker Common.Player 3 (-100.) 90. 5. 5. 1. "camel" 0. false []
+    0 0.
 
 let (entity_3' : Common.entity) =
-  entity_maker 3
+  entity_maker Common.Player 3
     (-100. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
-    0.
     (90. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
-    5. 5. 1. "camel" 0. false [] 0
+    5. 5. 1. "camel" 0. false [] 0 0.
 
 let entity_4 : Common.entity =
-  entity_maker 4 0. 3. 5. 5. 1. "camel" 0. true [] 0 0.
+  entity_maker Common.Player 4 0. 3. 5. 5. 1. "camel" 0. true [] 0 0.
 
 let (empty_world : Common.world_state) =
   world_state_maker [||] (Mutex.create ()) (ref (Some 0))
@@ -269,12 +315,12 @@ let world_manager_tests =
       entities, however the moving entity should be changed to where it
       is predicated to be (i.e. it should apply get_local's location
       smoothing)*)
-    ( Thread.delay (1. /. 4.);
-      world_manager_get_local_tests
-        "Using world_1 with (0,0) | Expect all two entities: one \
-         non-moving and one moving"
-        world_1 0. 0.
-        [ non_moving_entity_at_origin; moving_entity_at_origin' ] );
+    (Thread.delay (1. /. 4.);
+     world_manager_get_local_tests
+       "Using world_1 with (0,0) | Expect all two entities: one \
+        non-moving and one moving"
+       world_1 0. 0.
+       [ non_moving_entity_at_origin; moving_entity_at_origin' ]);
     (*see if it returns "None" when uuid is not found in the given zero
       entities*)
     world_manager_get_player_xy_tests
@@ -331,6 +377,9 @@ let world_manager_tests =
       world_2 entity_3
       (boundary_point_2 +. 0.001)
       [ moving_entity_at_origin; non_moving_entity_at_origin ];
+    world_manager_get_local_enemies_tests
+      "Trying to find enemies on world_2 | r= -1345.4, entity= entity_3"
+      world_2 entity_3 (-1345.4) [];
     world_manager_get_local_enemies_tests
       "Trying to find enemies on world_4 | r= 0., entity= entity_4 | \
        Annotation: entity_4 is facing in true direction"

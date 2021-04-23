@@ -69,11 +69,13 @@ let get_local_enemies
     (entity : Common.entity)
     radius =
   let entity_data = state.data in
-  Common.array_filter
-    (fun (e : Common.entity) ->
-      entity.last_direction_moved = e.last_direction_moved
-      && inside_circle entity.x entity.y e.x e.y radius
-      && e.uuid != entity.uuid)
-    entity_data
+  if radius < 0. then []
+  else
+    Common.array_filter
+      (fun (e : Common.entity) ->
+        entity.last_direction_moved = e.last_direction_moved
+        && inside_circle entity.x entity.y e.x e.y radius
+        && e.uuid != entity.uuid)
+      entity_data
 
 (**Inventory system: keep track which items.*)

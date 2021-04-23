@@ -12,8 +12,8 @@ val get_player_xy : Common.world_state -> (float * float) option
 
 (**[get_local_enemies] returns a list of all other than itself that are
    within the specified radius, and facing the same direction as the
-   given entity. Note enemies on the boundary (that is enemies that
-   exactly a distance equivalent to r) will be counted in the enemy
-   list.*)
+   given entity. If radius is negative, then an empty list will be
+   returned. Note enemies on the boundary (that is enemies that exactly
+   a distance equivalent to r) will be counted in the enemy list.*)
 val get_local_enemies :
   Common.world_state -> Common.entity -> float -> Common.entity list
