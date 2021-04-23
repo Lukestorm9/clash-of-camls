@@ -5,4 +5,5 @@ PKG sdl
 PKG sdl.sdlimage
 PKG sdl.sdlttf
 PKG sdl.sdlmixer
+PKG yojson
 FLG -I threads

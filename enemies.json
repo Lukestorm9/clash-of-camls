@@ -1,0 +1,30 @@
+{
+	"data": [
+		{
+		 "name" : "1", 
+		 "health" : 1.0,
+		 "graphic" : "camel", 
+		 "points": 3, 
+		 "weapon" : 
+		 {  
+			"name": "3", 
+			"range": 33.0,
+			"damage": 34.0, 
+			"cooldown": 3.0
+			}
+		},
+		{
+			"name" : "123", 
+			"health" : 1.0,
+			"graphic" : "camel", 
+			"points": 3, 
+			"weapon" : 
+			{  
+			 "name": "3", 
+			 "range": 33.0,
+			 "damage": 34.0, 
+			 "cooldown": 3.0
+			 }
+		 }
+	]
+}
