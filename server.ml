@@ -81,7 +81,7 @@ let user_send_update_loop (conn, state) =
       choice
   in
   Mutex.lock state.mutex;
-  let uuid = insert_entity state 0. 0. 0. 0. model 10. in
+  let uuid = insert_entity state 0. 0. 0. 0. model 100. in
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
   if Option.is_none uuid then ();

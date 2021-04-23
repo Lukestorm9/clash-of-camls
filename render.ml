@@ -11,6 +11,34 @@ let anim_decider right idle =
   else if (not right) && not idle then "_walk_left_"
   else "error"
 
+let blit_image pos_rect hashmap screen (graphic : string) =
+  Sdlvideo.blit_surface ~dst_rect:pos_rect
+    ~src:(Hashtbl.find hashmap graphic)
+    ~dst:screen ();
+  ()
+
+let draw_health screen hashmap x y health max_health =
+  let health_pos_rect = Sdlvideo.rect x (y - 15) 1000 1000 in
+  blit_image health_pos_rect hashmap screen
+    ( "health_bar_"
+    ^ string_of_int (int_of_float (health /. max_health *. 5.0))
+    ^ ".png" )
+
+(*code below is for when have 100 possibilities*)
+(*if player_health <= 100 then blit_image health_position_rect hashmap
+  screen “health_bar_” ^ (string_of_int (int_of_float (player_health)))
+  else blit_image health_position_rect hashmap screen “health_bar_” ^
+  (string_of_int (int_of_float (player_health /. 100)))*)
+
+(*let rec draw_health screen hashmap x y acc row_count row = let
+  health_position_rect = Sdlvideo.rect x (y - 5 - (16 * row)) 100 100 in
+  if acc < 1.0 then () else if row_count = 4 then ( blit_image
+  health_position_rect hashmap screen "heart_32x32.png"; draw_health
+  screen hashmap (x - 64) y (acc -. 1.0) (row_count + 1) (row + 1); () )
+  else ( blit_image health_position_rect hashmap screen
+  "heart_32x32.png"; draw_health screen hashmap (x + 16) y (acc -. 1.0)
+  (row_count + 1) row; () )*)
+
 let image_getter_render
     (entity : Common.entity)
     hashmap
@@ -18,12 +46,10 @@ let image_getter_render
     anim_frame
     (w, h)
     (x, y) =
-  let position_rect =
-    Sdlvideo.rect
-      (int_of_float entity.x - 64 + (w / 2) - int_of_float x)
-      (int_of_float entity.y - 64 + (h / 2) - int_of_float y)
-      100 100
-  in
+  let health = entity.health in
+  let x_coord = int_of_float entity.x - 48 + (w / 2) - int_of_float x in
+  let y_coord = int_of_float entity.y - 48 + (h / 2) - int_of_float y in
+  let position_rect = Sdlvideo.rect x_coord y_coord 100 100 in
   let source =
     try
       Hashtbl.find hashmap
@@ -35,7 +61,10 @@ let image_getter_render
     with Not_found -> Hashtbl.find hashmap "error"
   in
   Sdlvideo.blit_surface ~dst_rect:position_rect ~src:source ~dst:screen
-    ()
+    ();
+  draw_health screen hashmap x_coord y_coord health 100.0
+
+(*NEED max_health*)
 
 let draw_background screen hashmap x y =
   let map_position_rect =
