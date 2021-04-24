@@ -24,21 +24,6 @@ let draw_health screen hashmap x y health max_health =
     ^ string_of_int (int_of_float (health /. max_health *. 5.0))
     ^ ".png" )
 
-(*code below is for when have 100 possibilities*)
-(*if player_health <= 100 then blit_image health_position_rect hashmap
-  screen “health_bar_” ^ (string_of_int (int_of_float (player_health)))
-  else blit_image health_position_rect hashmap screen “health_bar_” ^
-  (string_of_int (int_of_float (player_health /. 100)))*)
-
-(*let rec draw_health screen hashmap x y acc row_count row = let
-  health_position_rect = Sdlvideo.rect x (y - 5 - (16 * row)) 100 100 in
-  if acc < 1.0 then () else if row_count = 4 then ( blit_image
-  health_position_rect hashmap screen "heart_32x32.png"; draw_health
-  screen hashmap (x - 64) y (acc -. 1.0) (row_count + 1) (row + 1); () )
-  else ( blit_image health_position_rect hashmap screen
-  "heart_32x32.png"; draw_health screen hashmap (x + 16) y (acc -. 1.0)
-  (row_count + 1) row; () )*)
-
 let image_getter_render
     (entity : Common.entity)
     hashmap
@@ -46,7 +31,6 @@ let image_getter_render
     anim_frame
     (w, h)
     (x, y) =
-  let health = entity.health in
   let x_coord = int_of_float entity.x - 48 + (w / 2) - int_of_float x in
   let y_coord = int_of_float entity.y - 48 + (h / 2) - int_of_float y in
   let position_rect = Sdlvideo.rect x_coord y_coord 100 100 in
@@ -63,9 +47,8 @@ let image_getter_render
   Sdlvideo.blit_surface ~dst_rect:position_rect ~src:source ~dst:screen
     ();
   if entity.kind = Player || entity.kind = Ai then
-    draw_health screen hashmap x_coord y_coord health entity.max_health
-
-(*NEED max_health*)
+    draw_health screen hashmap x_coord y_coord entity.health
+      entity.max_health
 
 let draw_background screen hashmap x y =
   let map_position_rect =
