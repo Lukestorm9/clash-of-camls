@@ -62,11 +62,11 @@ let inside_directed_circle
     radius
     (direction : Common.direction) =
   let distance = sqrt (((e_x -. x) ** 2.) +. ((e_y -. y) ** 2.)) in
-  let angle = atan (distance /. y) in
+  let angle = atan (y /. distance) in
   let pi = 3.14159 in
   let pi_4 = pi /. 4. in
   let pi_4' = pi_4 *. -1. in
-  let pi_3_4 = pi_4 +. (2. *. pi /. 4.) in
+  let pi_3_4 = pi_4 +. ((2. *. pi) /. 4.) in
   let pi_3_4' = pi_3_4 *. -1. in
   if distance <= radius then
     match direction with

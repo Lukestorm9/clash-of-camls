@@ -19,7 +19,7 @@
 
 open OUnit2
 open World_manager
-
+open Server 
 let rec print_string_list lst acc =
   match lst with
   | [] -> acc
@@ -169,10 +169,11 @@ let world_manager_get_local_enemies_tests
     (state : Common.world_state)
     (entity : Common.entity)
     radius
-    (expected_output : Common.entity list) : test =
+    direction
+    (expected_output : (int * Common.entity) list) : test =
   name >:: fun _ ->
   assert_equal expected_output
-    (World_manager.get_local_enemies state entity radius)
+    (Server.get_local_enemies state entity radius direction)
     ~printer:(print_entity "")
 
 let world_state_maker ~data ~mutex ~uuid ~user_command :
@@ -348,47 +349,6 @@ let world_manager_tests =
        matches"
       world_2
       (Some (entity_3'.x, entity_3'.y));
-    world_manager_get_local_enemies_tests
-      "Trying to find an enemy on an empty with radius 1." empty_world
-      non_moving_entity_at_origin 1. [];
-    world_manager_get_local_enemies_tests
-      "Trying to find an enemy on world_2 | r= 0, entity= \
-       non_moving-entity_at_orgin | Annotation: with two entities at \
-       same location "
-      world_2 non_moving_entity_at_origin 0.
-      [ moving_entity_at_origin ];
-    world_manager_get_local_enemies_tests
-      "Trying to find an enemy on world_2 | r= 100.0, entity= entity_3"
-      world_2 entity_3 100.0 [];
-    world_manager_get_local_enemies_tests
-      "Trying to find enemies on world_2 | r=boundary_point_2 - 0.001, \
-       entity= entity_3"
-      world_2 entity_3
-      (boundary_point_2 -. 0.001)
-      [];
-    world_manager_get_local_enemies_tests
-      "Trying to find enemies on world_2 | r=boundary_point_2, entity= \
-       entity_3"
-      world_2 entity_3 boundary_point_2
-      [ moving_entity_at_origin; non_moving_entity_at_origin ];
-    world_manager_get_local_enemies_tests
-      "Trying to find enemies on world_2 | r=boundary_point_2 + 0.001, \
-       entity= entity_3"
-      world_2 entity_3
-      (boundary_point_2 +. 0.001)
-      [ moving_entity_at_origin; non_moving_entity_at_origin ];
-    world_manager_get_local_enemies_tests
-      "Trying to find enemies on world_2 | r= -1345.4, entity= entity_3"
-      world_2 entity_3 (-1345.4) [];
-    world_manager_get_local_enemies_tests
-      "Trying to find enemies on world_4 | r= 0., entity= entity_4 | \
-       Annotation: entity_4 is facing in true direction"
-      world_4 entity_4 0. [];
-    world_manager_get_local_enemies_tests
-      "Trying to find enemies on world_4 | r= 100000000., entity= \
-       entity_4 | Annotation: entity_4 is facing in true direction, \
-       check if direction is being filtered for"
-      world_4 entity_4 100000000. [];
   ]
 
 let suite =

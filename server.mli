@@ -10,3 +10,10 @@ val start : int -> Thread.t * Thread.t
    metadata, and does not track client-specific information, such as the
    UUID associated with a particular client. *)
 type world_state
+
+val get_local_enemies :
+  Common.world_state ->
+  Common.entity -> 
+  float ->
+  Common.direction ->
+  (int * Common.entity) list
