@@ -70,9 +70,9 @@ let inside_directed_circle
   let pi_3_4' = pi_3_4 *. -1. in
   if distance <= radius then
     match direction with
-    | Up -> angle <= pi_3_4 && angle >= pi_4
-    | Down -> angle >= pi_3_4' && angle >= pi_4'
-    | Right -> angle >= pi_3_4 && angle <= pi_3_4'
+    | Up -> (angle +. pi) <= pi_3_4 && angle >= pi_4
+    | Down -> (angle +. pi) >= pi_3_4' && angle >= pi_4'
+    | Right -> (angle +. pi) >= pi_3_4 && (angle +. pi) <= pi_3_4'
     | Left -> angle <= pi_4 && angle <= pi_4'
   else false
 
