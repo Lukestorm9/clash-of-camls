@@ -99,7 +99,6 @@ let run (world_state : Common.world_state) hashmap =
     let anim_frame = (Sdltimer.get_ticks () - start_time) / 150 in
     List.mapi
       (fun i (e : Common.entity) ->
-        string_of_float e.x ^ " " ^ string_of_float e.y |> print_endline;
         image_getter_render e hashmap screen
           ((anim_frame + i) mod 4)
           (w, h) (x, y))

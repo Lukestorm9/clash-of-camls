@@ -24,6 +24,9 @@ let nowify (e : Common.entity option) =
 let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
   let recv_chan = Unix.in_channel_of_descr sock in
   let send_chan = Unix.out_channel_of_descr sock in
+  Marshal.to_channel send_chan 1776 [];
+  flush send_chan;
+
   (* Read an assign the uuid corresponding to the player from the server *)
   let uuid = (Marshal.from_channel recv_chan : int) in
   "Successfully logged in -- was assigned uuid " ^ string_of_int uuid

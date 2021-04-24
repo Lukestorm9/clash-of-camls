@@ -1,0 +1,16 @@
+{
+  "data": [
+    {
+      "name": "sword",
+      "range": 3000.0,
+      "damage": 30.0,
+      "cooldown": 1.0
+    },
+    {
+      "name": "hand of judgement",
+      "range": 1000.0,
+      "damage": 9999999.0,
+      "cooldown": 1.0
+    }
+  ]
+}

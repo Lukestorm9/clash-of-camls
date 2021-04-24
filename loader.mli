@@ -6,20 +6,13 @@ type weapon = {
 }
 
 type enemy = {
+  name : string;
   health : float;
   graphic : string;
   points : int;
-  weapon_name : weapon;
+  weapon : weapon;
 }
 
-val weapon_of_json: Yojson.Basic.t -> weapon 
+val load_enemies : unit -> enemy list
 
-val enemy_of_json: Yojson.Basic.t -> enemy 
-
-val parse_enemy: Yojson.Basic.t -> enemy
-
-val parse_weapon: Yojson.Basic.t -> weapon
-
-val load_enemies: unit -> enemy list 
-
-val load_weapons: unit -> weapon list 
+val load_weapons : unit -> weapon list

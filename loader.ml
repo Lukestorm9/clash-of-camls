@@ -3,6 +3,7 @@
 
    parse_weapon: use for weapon_name & weapons.json *)
 open Yojson.Basic.Util
+
 type weapon = {
   name : string;
   range : float;
@@ -11,7 +12,7 @@ type weapon = {
 }
 
 type enemy = {
-  name: string; 
+  name : string;
   health : float;
   graphic : string;
   points : int;
@@ -28,7 +29,7 @@ let weapon_of_json w =
 
 let enemy_of_json e =
   {
-    name  = e |> member "name" |> to_string;
+    name = e |> member "name" |> to_string;
     health = e |> member "health" |> to_float;
     graphic = e |> member "graphic" |> to_string;
     points = e |> member "points" |> to_int;
@@ -48,5 +49,5 @@ let load_enemies () =
   e |> member "data" |> to_list |> List.map enemy_of_json
 
 let load_weapons () =
-  let w = Yojson.Basic.from_file "weapon.json" in
+  let w = Yojson.Basic.from_file "weapons.json" in
   w |> member "data" |> to_list |> List.map weapon_of_json

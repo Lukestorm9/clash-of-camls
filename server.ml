@@ -77,14 +77,10 @@ let do_action state uuid action =
 let user_send_update_loop (conn, state) =
   let send_chan = Unix.out_channel_of_descr conn in
   let recv_chan = Unix.in_channel_of_descr conn in
-  let choice = Random.int 5 in
-  let model =
-    List.nth
-      [ "character"; "trader"; "trailer"; "camel"; "dromedary" ]
-      choice
-  in
+  let a = (Marshal.from_channel recv_chan : int) in
+  print_endline ("token: " ^ string_of_int a);
   Mutex.lock state.mutex;
-  let uuid = insert_entity state Player 0. 0. 0. 0. model 100. in
+  let uuid = insert_entity state Player 0. 0. 0. 0. "character" 100. in
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
   if Option.is_none uuid then ();
@@ -134,13 +130,16 @@ let network_loop (port, state) =
   done;
   ()
 
+(* Compare the distance information encoded in last with e1 <-> e2 if e1
+   is a player, picking whichever is least. *)
 let update_min_dist last (e1 : Common.entity) (e2 : Common.entity) =
   match e1.kind with
   | Player ->
       let dx = e1.x -. e2.x in
       let dy = e1.y -. e2.y in
       let dst2 = (dx *. dx) +. (dy *. dy) in
-      if dst2 < (last |> fst) then (dst2, Some e1) else last
+      if dst2 > 2500. && dst2 < (last |> fst) then (dst2, Some e1)
+      else last
   | _ -> last
 
 (* Compute AI movement for a single object at a single time. This is an
@@ -155,20 +154,15 @@ let apply_ai_step time state i e : Common.entity =
       | Some entity -> closest := update_min_dist !closest entity e
       | None -> ())
     state;
-  match !closest |> snd with
-  | Some closest ->
+  match !closest with
+  | dst2, Some closest ->
       let dx = closest.x -. e.x in
       let dy = closest.y -. e.y in
       let norm = sqrt ((dx *. dx) +. (dy *. dy) +. 1.) in
       let dvx = 100. *. dx /. norm in
       let dvy = 100. *. dy /. norm in
       { e with vx = dvx; vy = dvy }
-  | None ->
-      {
-        e with
-        vx = (40. *. sin delta) +. (5. *. sin i);
-        vy = (40. *. cos delta) +. (5. *. cos i);
-      }
+  | _, None -> { e with vx = 0.; vy = 0. }
 
 let apply_physics_step time i (e : Common.entity) : Common.entity =
   let now = Unix.gettimeofday () in
@@ -209,6 +203,9 @@ let physics_loop state =
 
 (* Start the physics and networking threads *)
 let start port =
+  let enemies = Loader.load_enemies () in
+  let weapons = Loader.load_weapons () in
+
   Sys.set_signal Sys.sigpipe Signal_ignore;
   let state : world_state =
     {
