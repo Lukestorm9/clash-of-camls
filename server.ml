@@ -54,6 +54,53 @@ let process_movement (e : Common.entity) = function
   | Common.Up -> { e with vy = -200. }
   | Common.Down -> { e with vy = 200. }
 
+let inside_directed_circle
+    e_x
+    e_y
+    x
+    y
+    radius
+    (direction : Common.direction) =
+  let distance = sqrt (((e_x -. x) ** 2.) +. ((e_y -. y) ** 2.)) in
+  let angle = atan (distance /. y) in
+  let pi = 3.14159 in
+  let pi_4 = pi /. 4. in
+  let pi_4' = pi_4 *. -1. in
+  let pi_3_4 = pi_4 +. (2. *. pi /. 4.) in
+  let pi_3_4' = pi_3_4 *. -1. in
+  if distance <= radius then
+    match direction with
+    | Up -> angle <= pi_3_4 && angle >= pi_4
+    | Down -> angle >= pi_3_4' && angle >= pi_4'
+    | Right -> angle >= pi_3_4 && angle <= pi_3_4'
+    | Left -> angle <= pi_4 && angle <= pi_4'
+  else false
+
+(**[get_local_enemies] Given word_state entity and radius return the
+   entity list of enemies that are possible are attack*)
+let get_local_enemies
+    state
+    (entity : Common.entity)
+    radius
+    direction =
+  let index_data =
+    Array.mapi (fun i e -> Option.map (fun e -> (i, e)) e) state.data
+  in
+  if radius < 0. then []
+  else
+    Common.array_filter
+      (fun ((i, e) : int * Common.entity) ->
+        inside_directed_circle entity.x entity.y e.x e.y radius
+          direction
+        && e.uuid != entity.uuid)
+      index_data
+
+let process_attack state entity direction = 
+  let radius = 1000. in  (**TODO: fix, get weapon radius*)
+  let enemies = get_local_enemies state entity radius direction in 
+  List.iter (fun ((i, e) : int * Common.entity)  -> state.data.(i) <- Some {e with health = e.health -. 50.}) enemies;
+  entity
+
 (* Requires the mutex to be held*)
 let do_action state uuid action =
   let idex =
@@ -66,7 +113,7 @@ let do_action state uuid action =
     let noveau =
       match action with
       | Common.Move d -> Some (process_movement e d)
-      | Common.Attack d -> Some e
+      | Common.Attack d -> Some (process_attack state e d)
       | Common.Nothing -> Some { e with vx = 0.; vy = 0. }
     in
     state.data.(idex) <- noveau
@@ -183,7 +230,7 @@ let filter_objects time state i (e : Common.entity option) =
       | Ai ->
           Some
             (apply_ai_step time state i e |> apply_physics_step time i)
-      | Player | Physik -> Some (apply_physics_step time i e) )
+      | Player | Physik -> Some (apply_physics_step time i e))
 
 (* The physics loop, which is running all the time in the background.
    Set to run at approx 20 ticks per second. TODO: make time exact. *)

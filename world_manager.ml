@@ -62,20 +62,5 @@ let get_player_xy (state : Common.world_state) =
   Mutex.unlock state.mutex;
   location
 
-(**[get_local_enemies] Given word_state entity and radius return the
-   entity list of enemies that are possible are attack*)
-let get_local_enemies
-    (state : Common.world_state)
-    (entity : Common.entity)
-    radius =
-  let entity_data = state.data in
-  if radius < 0. then []
-  else
-    Common.array_filter
-      (fun (e : Common.entity) ->
-        entity.last_direction_moved = e.last_direction_moved
-        && inside_circle entity.x entity.y e.x e.y radius
-        && e.uuid != entity.uuid)
-      entity_data
 
 (**Inventory system: keep track which items.*)
