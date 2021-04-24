@@ -12,13 +12,13 @@ let key_checker (world_state : Common.world_state) =
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_ESCAPE } ->
         Sdl.quit ()
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_w } ->
-        mutex_helper world_state Common.Up
+        mutex_helper world_state (Common.Move Up)
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_a } ->
-        mutex_helper world_state Common.Right
+        mutex_helper world_state (Common.Move Right)
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_s } ->
-        mutex_helper world_state Common.Down
+        mutex_helper world_state (Common.Move Down)
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_d } ->
-        mutex_helper world_state Common.Left
+        mutex_helper world_state (Common.Move Left)
     | Sdlevent.KEYUP _ -> mutex_helper world_state Common.Nothing
     | _ -> ()
   done

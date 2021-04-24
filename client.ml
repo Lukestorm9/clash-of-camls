@@ -29,7 +29,7 @@ let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
 
   (* Read an assign the uuid corresponding to the player from the server *)
   let uuid = (Marshal.from_channel recv_chan : int) in
-  "Successfully logged in -- was assigned uuid " ^ string_of_int uuid
+  "Successfully logged in w/ uuid = " ^ string_of_int uuid
   |> print_endline;
   Mutex.lock state.mutex;
   state.uuid := Some uuid;

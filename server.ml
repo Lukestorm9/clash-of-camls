@@ -48,6 +48,12 @@ let insert_entity state kind x y vx vy graphic health =
       print_endline "Failed to insert entity!";
       None
 
+let process_movement (e : Common.entity) = function
+  | Common.Left -> { e with vx = 200.; last_direction_moved = false }
+  | Common.Right -> { e with vx = -200.; last_direction_moved = true }
+  | Common.Up -> { e with vy = -200. }
+  | Common.Down -> { e with vy = 200. }
+
 (* Requires the mutex to be held*)
 let do_action state uuid action =
   let idex =
@@ -59,12 +65,8 @@ let do_action state uuid action =
     let e = Option.get state.data.(idex) in
     let noveau =
       match action with
-      | Common.Left ->
-          Some { e with vx = 200.; last_direction_moved = false }
-      | Common.Right ->
-          Some { e with vx = -200.; last_direction_moved = true }
-      | Common.Up -> Some { e with vy = -200. }
-      | Common.Down -> Some { e with vy = 200. }
+      | Common.Move d -> Some (process_movement e d)
+      | Common.Attack d -> Some e
       | Common.Nothing -> Some { e with vx = 0.; vy = 0. }
     in
     state.data.(idex) <- noveau
@@ -78,7 +80,7 @@ let user_send_update_loop (conn, state) =
   let send_chan = Unix.out_channel_of_descr conn in
   let recv_chan = Unix.in_channel_of_descr conn in
   let a = (Marshal.from_channel recv_chan : int) in
-  print_endline ("token: " ^ string_of_int a);
+  print_endline ("logon w/ token = " ^ string_of_int a);
   Mutex.lock state.mutex;
   let uuid = insert_entity state Player 0. 0. 0. 0. "character" 100. in
   Mutex.unlock state.mutex;
@@ -146,8 +148,6 @@ let update_min_dist last (e1 : Common.entity) (e2 : Common.entity) =
    immutable operation, and a new object is returned. TODO: This will be
    replaced with something proper in a future version. *)
 let apply_ai_step time state i e : Common.entity =
-  let i = float_of_int i in
-  let delta = time -. Unix.gettimeofday () +. i in
   let closest = ref (250000., None) in
   Array.iter
     (function

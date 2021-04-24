@@ -28,12 +28,16 @@ type entity = {
   last_attack_time : float;
 }
 
-type action =
-  | Nothing
+type direction =
   | Left
   | Right
   | Up
   | Down
+
+type action =
+  | Nothing
+  | Move of direction
+  | Attack of direction
 
 type world_state = {
   data : entity option array;

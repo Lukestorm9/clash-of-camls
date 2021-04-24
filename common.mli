@@ -52,12 +52,16 @@ type entity = {
   last_attack_time : float;
 }
 
-type action =
-  | Nothing
+type direction =
   | Left
   | Right
   | Up
   | Down
+
+type action =
+  | Nothing
+  | Move of direction
+  | Attack of direction
 
 (* [world_state] represents the world state as the client, NOT the
    server, understands it. Before accessing any of the data-bearing
