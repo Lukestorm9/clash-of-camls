@@ -61,19 +61,13 @@ let inside_directed_circle
     y
     radius
     (direction : Common.direction) =
-  let distance = sqrt (((e_x -. x) ** 2.) +. ((e_y -. y) ** 2.)) in
-  let angle = atan (y /. distance) in
-  let pi = 3.14159 in
-  let pi_4 = pi /. 4. in
-  let pi_4' = pi_4 *. -1. in
-  let pi_3_4 = pi_4 +. ((2. *. pi) /. 4.) in
-  let pi_3_4' = pi_3_4 *. -1. in
+  let distance = ((e_x -. x) ** 2.) +. ((e_y -. y) ** 2.) |> sqrt in
   if distance <= radius then
     match direction with
-    | Up -> (angle +. pi) <= pi_3_4 && angle >= pi_4
-    | Down -> (angle +. pi) >= pi_3_4' && angle >= pi_4'
-    | Right -> (angle +. pi) >= pi_3_4 && (angle +. pi) <= pi_3_4'
-    | Left -> angle <= pi_4 && angle <= pi_4'
+    | Up -> y >= Float.abs(x -. e_x) +. e_y
+    | Down -> y <= ((-1.) *. Float.abs(x -. e_x)) +. e_y
+    | Right ->  x >= Float.abs(y -. e_y) +. e_x
+    | Left -> x <= ((-1.) *. Float.abs(y -. e_y)) +. e_x
   else false
 
 (**[get_local_enemies] Given word_state entity and radius return the

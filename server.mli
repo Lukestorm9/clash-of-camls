@@ -9,11 +9,15 @@ val start : int -> Thread.t * Thread.t
    different from the information tracked by the client, including UUID
    metadata, and does not track client-specific information, such as the
    UUID associated with a particular client. *)
-type world_state
+type world_state = {
+  data : Common.entity option array;
+  mutex : Mutex.t;
+  highest_uuid : int ref;
+}
 
 val get_local_enemies :
-  Common.world_state ->
-  Common.entity -> 
+  world_state ->
+  Common.entity ->
   float ->
   Common.direction ->
   (int * Common.entity) list
