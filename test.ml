@@ -76,7 +76,21 @@ let rec print_int_entity_list acc (pair : (int * Common.entity) list) =
         (acc ^ "( " ^ string_of_int i ^ ", " ^ print_entity e ^ " )")
         t
 
-(*[print_float_pair_optio] prints and float option pair. If the option
+(*[compare_indexes] compares that the indexes outputed are same
+  regarless of the order they are in expected or calculated. The sorting
+  process does not remove duplicate values. *)
+let compare_indexes
+    (expected_enemy_lst : (int * Common.entity) list)
+    (calulated_enemy_lst : (int * Common.entity) list) =
+  let exp_indices =
+    expected_enemy_lst |> List.map fst |> List.sort compare
+  in
+  let cal_indices =
+    calulated_enemy_lst |> List.map fst |> List.sort compare
+  in
+  exp_indices = cal_indices
+
+(*[print_float_pair_option] prints and float option pair. If the option
   pair is some then it prints the float pair else if None then this
   function prints the word "None"*)
 let print_float_pair_option (pair : (float * float) option) =
@@ -176,6 +190,7 @@ let server_get_local_enemies_tests
   name >:: fun _ ->
   assert_equal expected_output
     (Server.get_local_enemies state entity radius direction)
+    ~cmp:compare_indexes
     ~printer:(print_int_entity_list "")
 
 let world_state_maker ~data ~mutex ~uuid ~user_command :
@@ -515,7 +530,7 @@ let server_tests =
       "Trying to find enemies on world_4_server | r=boundary_point_2, \
        entity= entity_5_center, d = Down"
       world_4_server entity_5_center boundary_point_2 Left
-      [ (9, entity_shared); (8, entity_9_left'); (4, entity_9_left) ];
+      [ (8, entity_9_left'); (4, entity_9_left); (9, entity_shared) ];
   ]
 
 let suite =

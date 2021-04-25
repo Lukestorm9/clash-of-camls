@@ -70,8 +70,8 @@ let inside_directed_circle
     | Left -> x <= ((-1.) *. Float.abs(y -. e_y)) +. e_x
   else false
 
-(**[get_local_enemies] Given word_state entity and radius return the
-   entity list of enemies that are possible are attack*)
+(**[get_local_enemies] Given word_state entity, radius, and direction return the
+   entity list of enemies that are possible to attack*)
 let get_local_enemies
     state
     (entity : Common.entity)

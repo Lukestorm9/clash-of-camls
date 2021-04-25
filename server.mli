@@ -15,6 +15,16 @@ type world_state = {
   highest_uuid : int ref;
 }
 
+(**[get_local_enemies] computes the enemies possible for attack given a
+   world state, entity, radius, and direction of attack. A list of local
+   enemies and their coressponding index value in the world state array
+   will be returned. Note that local enemy is defined as being a
+   distance equal to the radius or less away from the given entity and
+   within the direction given. Each direction has an acceptable range
+   the enemy could be in.
+   **********************************************************************
+   Direction: Right -> π/4 to -π/4 ||| Left -> 3π/4 to -3π/4 ||| Up
+   \-> 3π/4 to π/4 ||| Down -> -3π/4 to -π/4 *)
 val get_local_enemies :
   world_state ->
   Common.entity ->
