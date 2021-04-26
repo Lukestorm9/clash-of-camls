@@ -12,9 +12,9 @@ let key_checker (world_state : Common.world_state) =
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_ESCAPE } ->
         Sdl.quit ()
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_DOWN } ->
-        mutex_helper world_state (Common.Attack Down)
-    | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_UP } ->
         mutex_helper world_state (Common.Attack Up)
+    | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_UP } ->
+        mutex_helper world_state (Common.Attack Down)
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_RIGHT } ->
         mutex_helper world_state (Common.Attack Right)
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_LEFT } ->

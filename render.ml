@@ -18,11 +18,10 @@ let blit_image pos_rect hashmap screen (graphic : string) =
   ()
 
 let draw_health screen hashmap x y health max_health =
+  let health_num = max (health /. max_health *. 5.0) 0. in
   let health_pos_rect = Sdlvideo.rect x (y - 15) 1000 1000 in
   blit_image health_pos_rect hashmap screen
-    ( "health_bar_"
-    ^ string_of_int (int_of_float (health /. max_health *. 5.0))
-    ^ ".png" )
+    ("health_bar_" ^ string_of_int (int_of_float health_num) ^ ".png")
 
 let image_getter_render
     (entity : Common.entity)

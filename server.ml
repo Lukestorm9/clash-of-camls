@@ -17,7 +17,7 @@ let find_next_open array =
 (* Construct a new entity with the desired qualities, then insert it
    into the world state. Requires the state mutex to be locked on the
    current thread BEFORE this method is called.*)
-let insert_entity state kind x y vx vy graphic health =
+let insert_entity state kind x y vx vy graphic health inv =
   let uuid = !(state.highest_uuid) + 1 in
   let now = Unix.gettimeofday () in
   let entity : Common.entity =
@@ -33,7 +33,7 @@ let insert_entity state kind x y vx vy graphic health =
       health;
       max_health = health;
       last_direction_moved = false;
-      inventory = [];
+      inventory = inv;
       points = 0;
       last_attack_time = 0.;
     }
@@ -54,6 +54,8 @@ let process_movement (e : Common.entity) = function
   | Common.Up -> { e with vy = -200. }
   | Common.Down -> { e with vy = 200. }
 
+let norm a b = sqrt ((a *. a) +. (b *. b))
+
 let inside_directed_circle
     e_x
     e_y
@@ -61,22 +63,31 @@ let inside_directed_circle
     y
     radius
     (direction : Common.direction) =
-  let distance = ((e_x -. x) ** 2.) +. ((e_y -. y) ** 2.) |> sqrt in
+  let dx = x -. e_x in
+  let dy = y -. e_y in
+  let distance = sqrt ((dx *. dx) +. (dy *. dy)) in
+  let angle =
+    if dy < 0. then acos (dx /. distance) *. -1.
+    else acos (dx /. distance)
+  in
+  print_endline (string_of_float x ^ " " ^ string_of_float y);
+  print_endline (string_of_float angle);
+  let pi = 3.14159 in
+  let pi_4 = pi /. 4. in
+  let pi_4' = pi_4 *. -1. in
+  let pi_3_4 = 3. *. pi /. 4. in
+  let pi_3_4' = pi_3_4 *. -1. in
   if distance <= radius then
     match direction with
-    | Up -> y >= Float.abs(x -. e_x) +. e_y
-    | Down -> y <= ((-1.) *. Float.abs(x -. e_x)) +. e_y
-    | Right ->  x >= Float.abs(y -. e_y) +. e_x
-    | Left -> x <= ((-1.) *. Float.abs(y -. e_y)) +. e_x
+    | Up -> angle <= pi_3_4 && angle >= pi_4
+    | Down -> angle >= pi_3_4' && angle <= pi_4'
+    | Right -> angle >= pi_3_4 || angle <= pi_3_4'
+    | Left -> angle <= pi_4 && angle <= pi_4'
   else false
 
-(**[get_local_enemies] Given word_state entity, radius, and direction return the
-   entity list of enemies that are possible to attack*)
-let get_local_enemies
-    state
-    (entity : Common.entity)
-    radius
-    direction =
+(**[get_local_enemies] Given word_state entity and radius return the
+   entity list of enemies that are possible are attack*)
+let get_local_enemies state (entity : Common.entity) radius direction =
   let index_data =
     Array.mapi (fun i e -> Option.map (fun e -> (i, e)) e) state.data
   in
@@ -84,16 +95,25 @@ let get_local_enemies
   else
     Common.array_filter
       (fun ((i, e) : int * Common.entity) ->
-        inside_directed_circle entity.x entity.y e.x e.y radius
-          direction
-        && e.uuid != entity.uuid)
+        e.uuid <> entity.uuid
+        && inside_directed_circle entity.x entity.y e.x e.y radius
+             direction)
       index_data
 
-let process_attack state entity direction = 
-  let radius = 1000. in  (**TODO: fix, get weapon radius*)
-  let enemies = get_local_enemies state entity radius direction in 
-  List.iter (fun ((i, e) : int * Common.entity)  -> state.data.(i) <- Some {e with health = e.health -. 50.}) enemies;
-  entity
+let process_attack state (entity : Common.entity) direction =
+  let weapon = List.hd entity.inventory in
+  let now = Unix.gettimeofday () in
+  if now -. entity.last_attack_time > weapon.cooldown then (
+    let enemies =
+      get_local_enemies state entity weapon.range direction
+    in
+    List.iter
+      (fun ((i, e) : int * Common.entity) ->
+        state.data.(i) <-
+          Some { e with health = e.health -. weapon.damage })
+      enemies;
+    { entity with last_attack_time = now } )
+  else entity
 
 (* Requires the mutex to be held*)
 let do_action state uuid action =
@@ -123,7 +143,12 @@ let user_send_update_loop (conn, state) =
   let a = (Marshal.from_channel recv_chan : int) in
   print_endline ("logon w/ token = " ^ string_of_int a);
   Mutex.lock state.mutex;
-  let uuid = insert_entity state Player 0. 0. 0. 0. "character" 100. in
+  let uuid =
+    insert_entity state Player 0. 0. 0. 0. "character" 100.
+      [
+        { name = "fists"; range = 250.; damage = 20.; cooldown = 0.25 };
+      ]
+  in
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
   if Option.is_none uuid then ();
@@ -175,67 +200,71 @@ let network_loop (port, state) =
 
 (* Compare the distance information encoded in last with e1 <-> e2 if e1
    is a player, picking whichever is least. *)
-let update_min_dist last (e1 : Common.entity) (e2 : Common.entity) =
+let update_min_dist last (e1 : Common.entity) i (e2 : Common.entity) =
   match e1.kind with
   | Player ->
       let dx = e1.x -. e2.x in
       let dy = e1.y -. e2.y in
       let dst2 = (dx *. dx) +. (dy *. dy) in
-      if dst2 > 2500. && dst2 < (last |> fst) then (dst2, Some e1)
+      if dst2 > 2500. && dst2 < (last |> fst) then (dst2, Some (i, e1))
       else last
   | _ -> last
 
 (* Compute AI movement for a single object at a single time. This is an
    immutable operation, and a new object is returned. TODO: This will be
    replaced with something proper in a future version. *)
-let apply_ai_step time state i e : Common.entity =
+let apply_ai_step state i e : Common.entity =
   let closest = ref (250000., None) in
-  Array.iter
-    (function
-      | Some entity -> closest := update_min_dist !closest entity e
+  Array.iteri
+    (fun i -> function
+      | Some entity -> closest := update_min_dist !closest entity i e
       | None -> ())
     state;
   match !closest with
-  | dst2, Some closest ->
+  | dst2, Some (i, closest) ->
       let dx = closest.x -. e.x in
       let dy = closest.y -. e.y in
-      let norm = sqrt ((dx *. dx) +. (dy *. dy) +. 1.) in
+      let norm = 1. +. norm dx dy in
       let dvx = 100. *. dx /. norm in
       let dvy = 100. *. dy /. norm in
+      ( match e.inventory with
+      | h :: _ -> if dst2 < h.range ** 2. && true then ()
+      | _ -> () );
       { e with vx = dvx; vy = dvy }
   | _, None -> { e with vx = 0.; vy = 0. }
 
-let apply_physics_step time i (e : Common.entity) : Common.entity =
+let apply_physics_step i (e : Common.entity) : Common.entity =
   let now = Unix.gettimeofday () in
   {
     e with
-    x = e.x +. (e.vx *. (Unix.gettimeofday () -. e.time_sent_over));
-    y = e.y +. (e.vy *. (Unix.gettimeofday () -. e.time_sent_over));
+    x = e.x +. (e.vx *. (now -. e.time_sent_over));
+    y = e.y +. (e.vy *. (now -. e.time_sent_over));
     last_direction_moved = e.vx < 0.;
     time_sent_over = now;
   }
 
+let check_dead (e : Common.entity) =
+  if e.health > 0. then Some e else None
+
 (* Only do physics operations on objects which exist *)
-let filter_objects time state i (e : Common.entity option) =
+let filter_objects state i (e : Common.entity option) =
   match e with
   | None -> None
   | Some e -> (
       match e.kind with
       | Ai ->
-          Some
-            (apply_ai_step time state i e |> apply_physics_step time i)
-      | Player | Physik -> Some (apply_physics_step time i e))
+          apply_ai_step state i e |> apply_physics_step i |> check_dead
+      | Player | Physik -> apply_physics_step i e |> check_dead )
 
 (* The physics loop, which is running all the time in the background.
    Set to run at approx 20 ticks per second. TODO: make time exact. *)
 let physics_loop state =
-  let start = Unix.gettimeofday () in
   while true do
     Thread.delay 0.05;
+
+    (* Do AI/Physics calculations*)
     Mutex.lock state.mutex;
-    let noveau =
-      Array.mapi (filter_objects start state.data) state.data
-    in
+    let noveau = Array.mapi (filter_objects state.data) state.data in
     let len = Array.length noveau in
     Array.blit noveau 0 state.data 0 len;
     Mutex.unlock state.mutex
@@ -257,13 +286,13 @@ let start port =
   in
   (* TODO: remove these -- In MS2, these will be replaced by random
      generation algorithm *)
-  insert_entity state Ai 500. 0. 0. 0. "dromedary" 50.
+  insert_entity state Ai 500. 0. 0. 0. "dromedary" 50. []
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai (-500.) 0. 0. 0. "trailer" 50.
+  insert_entity state Ai (-500.) 0. 0. 0. "trailer" 50. []
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. 500. 0. 0. "trader" 50.
+  insert_entity state Ai 0. 500. 0. 0. "trader" 50. []
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. (-500.) 0. 0. "camel" 50.
+  insert_entity state Ai 0. (-500.) 0. 0. "camel" 50. []
   |> ignore |> ignore |> ignore;
 
   ( Thread.create physics_loop state,
