@@ -12,7 +12,6 @@ val start : int -> Thread.t * Thread.t
 type world_state = {
   data : Common.entity option array;
   mutex : Mutex.t;
-  highest_uuid : int ref;
 }
 
 (**[get_local_enemies] computes the enemies possible for attack given a

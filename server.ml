@@ -2,7 +2,6 @@
 type world_state = {
   data : Common.entity option array;
   mutex : Mutex.t;
-  highest_uuid : int ref;
 }
 
 (* Find the next open slot in the array *)
@@ -18,12 +17,11 @@ let find_next_open array =
    into the world state. Requires the state mutex to be locked on the
    current thread BEFORE this method is called.*)
 let insert_entity state kind x y vx vy graphic health inv =
-  let uuid = !(state.highest_uuid) + 1 in
   let now = Unix.gettimeofday () in
   let entity : Common.entity =
     {
       kind;
-      uuid;
+      uuid = -1;
       x;
       y;
       vx;
@@ -40,21 +38,28 @@ let insert_entity state kind x y vx vy graphic health inv =
   in
   match find_next_open state.data with
   | Some i ->
-      state.data.(i) <- Some entity;
-      state.highest_uuid := uuid;
-      Some uuid
+      state.data.(i) <- Some { entity with uuid = i };
+      Some i
   (* TODO: fail another way? *)
   | None ->
       print_endline "Failed to insert entity!";
       None
 
-let process_movement (e : Common.entity) = function
-  | Common.Left -> { e with vx = 200.; last_direction_moved = false }
-  | Common.Right -> { e with vx = -200.; last_direction_moved = true }
-  | Common.Up -> { e with vy = -200. }
-  | Common.Down -> { e with vy = 200. }
-
 let norm a b = sqrt ((a *. a) +. (b *. b))
+
+let norm_entity_velocity (e : Common.entity) =
+  let norm = norm e.vx e.vy /. 200. in
+  { e with vx = e.vx /. norm; vy = e.vy /. norm }
+
+let process_movement (e : Common.entity) = function
+  | Common.Left ->
+      { e with vx = 200.; last_direction_moved = false }
+      |> norm_entity_velocity
+  | Common.Right ->
+      { e with vx = -200.; last_direction_moved = true }
+      |> norm_entity_velocity
+  | Common.Up -> { e with vy = -200. } |> norm_entity_velocity
+  | Common.Down -> { e with vy = 200. } |> norm_entity_velocity
 
 let inside_directed_circle
     e_x
@@ -70,8 +75,6 @@ let inside_directed_circle
     if dy < 0. then acos (dx /. distance) *. -1.
     else acos (dx /. distance)
   in
-  print_endline (string_of_float dx ^ " " ^ string_of_float dy);
-  print_endline (string_of_float angle);
   let pi = 3.14159 in
   let pi_4 = pi /. 4. in
   let pi_4' = pi_4 *. -1. in
@@ -231,9 +234,11 @@ let apply_ai_step state i e : Common.entity =
           if
             dst2 < h.range ** 2.
             && now -. e.last_attack_time > h.cooldown
-          then
+          then (
+            print_endline ("attacking uuid = " ^ string_of_int i);
             state.(i) <-
-              Some { closest with health = closest.health -. h.damage };
+              Some { closest with health = closest.health -. h.damage }
+            );
           { e with vx = dvx; vy = dvy; last_attack_time = now }
       | _ -> { e with vx = dvx; vy = dvy } )
   | _, None -> { e with vx = 0.; vy = 0. }
@@ -283,15 +288,11 @@ let start port =
 
   Sys.set_signal Sys.sigpipe Signal_ignore;
   let state : world_state =
-    {
-      data = Array.make 500 None;
-      mutex = Mutex.create ();
-      highest_uuid = ref 0;
-    }
+    { data = Array.make 500 None; mutex = Mutex.create () }
   in
 
   let fists : Common.weapon =
-    { name = "fists"; range = 150.; damage = 20.; cooldown = 1.0 }
+    { name = "fists"; range = 250.; damage = 20.; cooldown = 1.0 }
   in
   (* TODO: remove these -- In MS2, these will be replaced by random
      generation algorithm *)
