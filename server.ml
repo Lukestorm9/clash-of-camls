@@ -48,8 +48,15 @@ let insert_entity state kind x y vx vy graphic health inv =
 let norm a b = sqrt ((a *. a) +. (b *. b))
 
 let norm_entity_velocity (e : Common.entity) =
-  let norm = norm e.vx e.vy /. 200. in
-  { e with vx = e.vx /. norm; vy = e.vy /. norm }
+  let nvx =
+    if e.vx > 0. then 200. else if e.vx < 0. then -200. else 0.
+  in
+  let nvy =
+    if e.vy > 0. then 200. else if e.vy < 0. then -200. else 0.
+  in
+  let norm = norm nvx nvy /. 200. in
+
+  { e with vx = nvx /. norm; vy = nvy /. norm }
 
 let process_movement (e : Common.entity) = function
   | Common.Left ->
