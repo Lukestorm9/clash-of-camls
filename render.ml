@@ -49,17 +49,38 @@ let image_getter_render
     draw_health screen hashmap x_coord y_coord entity.health
       entity.max_health
 
-let draw_background screen hashmap x y =
+let rec generate_y height background_size x y acc =
+  match height with
+  | 0 -> acc
+  | _ ->
+      generate_y (height - 1) background_size x (y +. background_size)
+        (acc @ [ (x, y) ])
+
+let rec generate_grid width height background_size x y acc =
+  match width with
+  | 0 -> acc
+  | _ ->
+      let new_acc = generate_y height background_size x y acc in
+      generate_grid (width - 1) height background_size
+        (x +. background_size) y new_acc
+
+let draw_tiles hashmap screen x y =
   let map_position_rect =
-    Sdlvideo.rect
-      (int_of_float ((-1.0 *. x) -. (8192. /. 2.)))
-      (int_of_float ((-1.0 *. y) -. (8192. /. 2.)))
-      100 100
+    Sdlvideo.rect (int_of_float x) (int_of_float y) 100 100
   in
   Sdlvideo.blit_surface ~dst_rect:map_position_rect
     ~src:(Hashtbl.find hashmap "map.png")
-    ~dst:screen ();
-  ()
+    ~dst:screen ()
+
+let rec draw_tile screen hashmap (grid : (float * float) list) x y =
+  List.iter
+    (fun (w, h) -> draw_tiles hashmap screen (w +. x) (h +. y))
+    grid
+
+let draw_background screen hashmap grid x y size =
+  let new_x = mod_float (-1.0 *. x) (512. *. size) in
+  let new_y = mod_float (-1.0 *. y) (512. *. size) in
+  draw_tile screen hashmap grid new_x new_y
 
 (**[run] takes in world state and hashmap and renders the world map and
    every entity in world with the associated graphic in hashmap*)
@@ -68,6 +89,9 @@ let run (world_state : Common.world_state) hashmap =
   let w, h = (1920, 1080) in
   let screen = Sdlvideo.set_video_mode w h [ `DOUBLEBUF ] in
   Thread.create Input_handler.key_checker world_state |> ignore;
+  let grid =
+    generate_grid 5 5 3072. (-2.5 *. 3072.) (-2.5 *. 3072.) []
+  in
   while true do
     let world = World_manager.get_local world_state 400.0 300.0 in
     let x, y =
@@ -75,7 +99,8 @@ let run (world_state : Common.world_state) hashmap =
       World_manager.get_player_xy world_state
       |> Option.value ~default:(0., 0.)
     in
-    draw_background screen hashmap x y;
+    print_endline (string_of_float x);
+    draw_background screen hashmap grid x y 6.;
     let time_begin = Sdltimer.get_ticks () in
     (*TODO unsync animations?*)
     let anim_frame = (Sdltimer.get_ticks () - start_time) / 150 in
