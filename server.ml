@@ -70,7 +70,7 @@ let inside_directed_circle
     if dy < 0. then acos (dx /. distance) *. -1.
     else acos (dx /. distance)
   in
-  print_endline (string_of_float x ^ " " ^ string_of_float y);
+  print_endline (string_of_float dx ^ " " ^ string_of_float dy);
   print_endline (string_of_float angle);
   let pi = 3.14159 in
   let pi_4 = pi /. 4. in
@@ -81,8 +81,8 @@ let inside_directed_circle
     match direction with
     | Up -> angle <= pi_3_4 && angle >= pi_4
     | Down -> angle >= pi_3_4' && angle <= pi_4'
-    | Right -> angle >= pi_3_4 || angle <= pi_3_4'
-    | Left -> angle <= pi_4 && angle <= pi_4'
+    | Right -> angle <= pi_4 && angle >= pi_4'
+    | Left -> angle >= pi_3_4 || angle <= pi_3_4'
   else false
 
 (**[get_local_enemies] Given word_state entity and radius return the
