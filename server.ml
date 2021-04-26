@@ -137,6 +137,9 @@ let do_action state uuid action =
   in
   match idex with None -> () | Some i -> perform i
 
+let player_fists : Common.weapon =
+  { name = "fists"; range = 150.; damage = 20.; cooldown = 0.25 }
+
 (* The connection loop for a particular user. Loops forever. Suffers an
    exception when the user disconnects, which kill the thread. This
    behavior is intentional. *)
@@ -148,9 +151,7 @@ let user_send_update_loop (conn, state) =
   Mutex.lock state.mutex;
   let uuid =
     insert_entity state Player 0. 0. 0. 0. "character" 100.
-      [
-        { name = "fists"; range = 150.; damage = 20.; cooldown = 0.25 };
-      ]
+      [ player_fists ]
   in
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
@@ -209,7 +210,7 @@ let update_min_dist last (e1 : Common.entity) i (e2 : Common.entity) =
       let dx = e1.x -. e2.x in
       let dy = e1.y -. e2.y in
       let dst2 = (dx *. dx) +. (dy *. dy) in
-      if dst2 > 250. && dst2 < (last |> fst) then (dst2, Some (i, e1))
+      if dst2 > 50. && dst2 < (last |> fst) then (dst2, Some (i, e1))
       else last
   | _ -> last
 
@@ -252,7 +253,28 @@ let apply_physics_step i (e : Common.entity) : Common.entity =
   }
 
 let check_dead (e : Common.entity) =
-  if e.health > 0. then Some e else None
+  match e.kind with
+  | Player ->
+      if e.health > 0. then Some e
+      else
+        Some
+          {
+            kind = Player;
+            uuid = e.uuid;
+            x = 0.;
+            y = 0.;
+            vx = 0.;
+            vy = 0.;
+            time_sent_over = Unix.gettimeofday ();
+            graphic = e.graphic;
+            health = 100.;
+            max_health = 100.;
+            last_direction_moved = false;
+            inventory = [ player_fists ];
+            points = 0;
+            last_attack_time = 0.;
+          }
+  | _ -> if e.health > 0. then Some e else None
 
 (* Only do physics operations on objects which exist *)
 let filter_objects state i (e : Common.entity option) =
