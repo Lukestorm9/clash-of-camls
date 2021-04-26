@@ -11,6 +11,7 @@ val start : int -> Thread.t * Thread.t
    UUID associated with a particular client. *)
 type world_state = {
   data : Common.entity option array;
+  points_gathered : int ref;
   mutex : Mutex.t;
 }
 

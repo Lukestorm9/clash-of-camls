@@ -1,6 +1,7 @@
 (* Define a type for the server *)
 type world_state = {
   data : Common.entity option array;
+  points_gathered : int ref;
   mutex : Mutex.t;
 }
 
@@ -122,7 +123,10 @@ let process_attack state (entity : Common.entity) direction =
       (fun ((i, e) : int * Common.entity) ->
         let e = { e with health = e.health -. weapon.damage } in
         state.data.(i) <- Some e;
-        if e.health < 0. then extra_pts := !extra_pts + e.points)
+        if e.health < 0. then (
+          extra_pts := !extra_pts + e.points;
+          state.points_gathered :=
+            e.points + state.points_gathered.contents ))
       enemies;
     {
       entity with
@@ -234,20 +238,31 @@ let apply_ai_step state i e : Common.entity =
     (fun i -> function
       | Some entity -> closest := update_min_dist !closest entity i e
       | None -> ())
-    state;
+    state.data;
+  (* TODO: better scaling*)
+  let difficulty_value =
+    2.718 ** (float_of_int state.points_gathered.contents *. 0.025)
+  in
+  let difficulty_factor = 2.5 -. (4. /. (1. +. difficulty_value)) in
   match !closest with
   | dst2, Some (i, closest) ->
       let dx = closest.x -. e.x in
       let dy = closest.y -. e.y in
       let norm = 1. +. norm dx dy in
-      let dvx = if norm > 40. then 100. *. dx /. norm else 0. in
-      let dvy = if norm > 40. then 100. *. dy /. norm else 0. in
+      let dvx =
+        if norm > 40. then difficulty_factor *. 100. *. dx /. norm
+        else 0.
+      in
+      let dvy =
+        if norm > 40. then difficulty_factor *. 100. *. dy /. norm
+        else 0.
+      in
       let weapon = List.hd e.inventory in
       if
         dst2 < weapon.range ** 2.
         && now -. e.last_attack_time > weapon.cooldown
       then (
-        state.(i) <-
+        state.data.(i) <-
           Some { closest with health = closest.health -. weapon.damage };
         { e with vx = dvx; vy = dvy; last_attack_time = now } )
       else { e with vx = dvx; vy = dvy }
@@ -300,6 +315,8 @@ let filter_objects state i (e : Common.entity option) =
           apply_ai_step state i e |> apply_physics_step i |> check_dead
       | Player | Physik -> apply_physics_step i e |> check_dead )
 
+let spawn_enemy_cluster state = ()
+
 (* The physics loop, which is running all the time in the background.
    Set to run at approx 20 ticks per second. TODO: make time exact. *)
 let physics_loop state =
@@ -308,7 +325,7 @@ let physics_loop state =
 
     (* Do AI/Physics calculations*)
     Mutex.lock state.mutex;
-    let noveau = Array.mapi (filter_objects state.data) state.data in
+    let noveau = Array.mapi (filter_objects state) state.data in
     let len = Array.length noveau in
     Array.blit noveau 0 state.data 0 len;
     Mutex.unlock state.mutex
@@ -319,7 +336,11 @@ let physics_loop state =
 let start port =
   Sys.set_signal Sys.sigpipe Signal_ignore;
   let state : world_state =
-    { data = Array.make 500 None; mutex = Mutex.create () }
+    {
+      data = Array.make 500 None;
+      mutex = Mutex.create ();
+      points_gathered = ref 0;
+    }
   in
 
   let fists : Common.weapon =
