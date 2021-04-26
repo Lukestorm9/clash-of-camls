@@ -210,8 +210,7 @@ let update_min_dist last (e1 : Common.entity) i (e2 : Common.entity) =
       let dx = e1.x -. e2.x in
       let dy = e1.y -. e2.y in
       let dst2 = (dx *. dx) +. (dy *. dy) in
-      if dst2 > 50. && dst2 < (last |> fst) then (dst2, Some (i, e1))
-      else last
+      if dst2 < (last |> fst) then (dst2, Some (i, e1)) else last
   | _ -> last
 
 (* Compute AI movement for a single object at a single time. *)
@@ -228,14 +227,13 @@ let apply_ai_step state i e : Common.entity =
       let dx = closest.x -. e.x in
       let dy = closest.y -. e.y in
       let norm = 1. +. norm dx dy in
-      let dvx = 100. *. dx /. norm in
-      let dvy = 100. *. dy /. norm in
+      let dvx = if norm > 40. then 100. *. dx /. norm else 0. in
+      let dvy = if norm > 40. then 100. *. dy /. norm else 0. in
       let weapon = List.hd e.inventory in
       if
         dst2 < weapon.range ** 2.
         && now -. e.last_attack_time > weapon.cooldown
       then (
-        print_endline ("attacking uuid = " ^ string_of_int i);
         state.(i) <-
           Some { closest with health = closest.health -. weapon.damage };
         { e with vx = dvx; vy = dvy; last_attack_time = now } )
@@ -303,9 +301,6 @@ let physics_loop state =
 
 (* Start the physics and networking threads *)
 let start port =
-  let enemies = Loader.load_enemies () in
-  let weapons = Loader.load_weapons () in
-
   Sys.set_signal Sys.sigpipe Signal_ignore;
   let state : world_state =
     { data = Array.make 500 None; mutex = Mutex.create () }
