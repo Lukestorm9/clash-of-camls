@@ -149,7 +149,7 @@ let user_send_update_loop (conn, state) =
   let uuid =
     insert_entity state Player 0. 0. 0. 0. "character" 100.
       [
-        { name = "fists"; range = 250.; damage = 20.; cooldown = 0.25 };
+        { name = "fists"; range = 150.; damage = 20.; cooldown = 0.25 };
       ]
   in
   Mutex.unlock state.mutex;
@@ -209,7 +209,7 @@ let update_min_dist last (e1 : Common.entity) i (e2 : Common.entity) =
       let dx = e1.x -. e2.x in
       let dy = e1.y -. e2.y in
       let dst2 = (dx *. dx) +. (dy *. dy) in
-      if dst2 > 2500. && dst2 < (last |> fst) then (dst2, Some (i, e1))
+      if dst2 > 250. && dst2 < (last |> fst) then (dst2, Some (i, e1))
       else last
   | _ -> last
 
@@ -223,24 +223,22 @@ let apply_ai_step state i e : Common.entity =
       | None -> ())
     state;
   match !closest with
-  | dst2, Some (i, closest) -> (
+  | dst2, Some (i, closest) ->
       let dx = closest.x -. e.x in
       let dy = closest.y -. e.y in
       let norm = 1. +. norm dx dy in
       let dvx = 100. *. dx /. norm in
       let dvy = 100. *. dy /. norm in
-      match e.inventory with
-      | h :: _ ->
-          if
-            dst2 < h.range ** 2.
-            && now -. e.last_attack_time > h.cooldown
-          then (
-            print_endline ("attacking uuid = " ^ string_of_int i);
-            state.(i) <-
-              Some { closest with health = closest.health -. h.damage }
-            );
-          { e with vx = dvx; vy = dvy; last_attack_time = now }
-      | _ -> { e with vx = dvx; vy = dvy } )
+      let weapon = List.hd e.inventory in
+      if
+        dst2 < weapon.range ** 2.
+        && now -. e.last_attack_time > weapon.cooldown
+      then (
+        print_endline ("attacking uuid = " ^ string_of_int i);
+        state.(i) <-
+          Some { closest with health = closest.health -. weapon.damage };
+        { e with vx = dvx; vy = dvy; last_attack_time = now } )
+      else { e with vx = dvx; vy = dvy }
   | _, None -> { e with vx = 0.; vy = 0. }
 
 let apply_physics_step i (e : Common.entity) : Common.entity =
@@ -292,7 +290,7 @@ let start port =
   in
 
   let fists : Common.weapon =
-    { name = "fists"; range = 250.; damage = 20.; cooldown = 1.0 }
+    { name = "fists"; range = 50.; damage = 20.; cooldown = 1. }
   in
   (* TODO: remove these -- In MS2, these will be replaced by random
      generation algorithm *)
