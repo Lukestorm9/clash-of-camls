@@ -210,27 +210,32 @@ let update_min_dist last (e1 : Common.entity) i (e2 : Common.entity) =
       else last
   | _ -> last
 
-(* Compute AI movement for a single object at a single time. This is an
-   immutable operation, and a new object is returned. TODO: This will be
-   replaced with something proper in a future version. *)
+(* Compute AI movement for a single object at a single time. *)
 let apply_ai_step state i e : Common.entity =
   let closest = ref (250000., None) in
+  let now = Unix.gettimeofday () in
   Array.iteri
     (fun i -> function
       | Some entity -> closest := update_min_dist !closest entity i e
       | None -> ())
     state;
   match !closest with
-  | dst2, Some (i, closest) ->
+  | dst2, Some (i, closest) -> (
       let dx = closest.x -. e.x in
       let dy = closest.y -. e.y in
       let norm = 1. +. norm dx dy in
       let dvx = 100. *. dx /. norm in
       let dvy = 100. *. dy /. norm in
-      ( match e.inventory with
-      | h :: _ -> if dst2 < h.range ** 2. && true then ()
-      | _ -> () );
-      { e with vx = dvx; vy = dvy }
+      match e.inventory with
+      | h :: _ ->
+          if
+            dst2 < h.range ** 2.
+            && now -. e.last_attack_time > h.cooldown
+          then
+            state.(i) <-
+              Some { closest with health = closest.health -. h.damage };
+          { e with vx = dvx; vy = dvy; last_attack_time = now }
+      | _ -> { e with vx = dvx; vy = dvy } )
   | _, None -> { e with vx = 0.; vy = 0. }
 
 let apply_physics_step i (e : Common.entity) : Common.entity =
@@ -284,15 +289,19 @@ let start port =
       highest_uuid = ref 0;
     }
   in
+
+  let fists : Common.weapon =
+    { name = "fists"; range = 150.; damage = 20.; cooldown = 1.0 }
+  in
   (* TODO: remove these -- In MS2, these will be replaced by random
      generation algorithm *)
-  insert_entity state Ai 500. 0. 0. 0. "dromedary" 50. []
+  insert_entity state Ai 500. 0. 0. 0. "dromedary" 50. [ fists ]
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai (-500.) 0. 0. 0. "trailer" 50. []
+  insert_entity state Ai (-500.) 0. 0. 0. "trailer" 50. [ fists ]
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. 500. 0. 0. "trader" 50. []
+  insert_entity state Ai 0. 500. 0. 0. "trader" 50. [ fists ]
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. (-500.) 0. 0. "camel" 50. []
+  insert_entity state Ai 0. (-500.) 0. 0. "camel" 50. [ fists ]
   |> ignore |> ignore |> ignore;
 
   ( Thread.create physics_loop state,

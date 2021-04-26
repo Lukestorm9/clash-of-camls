@@ -68,6 +68,12 @@ let start addr port =
       user_command = ref Common.Nothing;
     }
   in
-  match try_sock_connect addr port with
-  | Some sock -> Some (state, Thread.create client_loop (sock, state))
-  | None -> None
+  let rec attempt_connect i =
+    if i = 0 then None
+    else
+      match try_sock_connect addr port with
+      | Some sock ->
+          Some (state, Thread.create client_loop (sock, state))
+      | None -> attempt_connect (i - 1)
+  in
+  attempt_connect 10
