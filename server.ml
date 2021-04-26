@@ -16,7 +16,7 @@ let find_next_open array =
 (* Construct a new entity with the desired qualities, then insert it
    into the world state. Requires the state mutex to be locked on the
    current thread BEFORE this method is called.*)
-let insert_entity state kind x y vx vy graphic health inv =
+let insert_entity state kind x y vx vy graphic health inv points =
   let now = Unix.gettimeofday () in
   let entity : Common.entity =
     {
@@ -32,7 +32,7 @@ let insert_entity state kind x y vx vy graphic health inv =
       max_health = health;
       last_direction_moved = false;
       inventory = inv;
-      points = 0;
+      points;
       last_attack_time = 0.;
     }
   in
@@ -117,12 +117,18 @@ let process_attack state (entity : Common.entity) direction =
     let enemies =
       get_local_enemies state entity weapon.range direction
     in
+    let extra_pts = ref 0 in
     List.iter
       (fun ((i, e) : int * Common.entity) ->
-        state.data.(i) <-
-          Some { e with health = e.health -. weapon.damage })
+        let e = { e with health = e.health -. weapon.damage } in
+        state.data.(i) <- Some e;
+        if e.health < 0. then extra_pts := !extra_pts + e.points)
       enemies;
-    { entity with last_attack_time = now } )
+    {
+      entity with
+      last_attack_time = now;
+      points = entity.points + !extra_pts;
+    } )
   else entity
 
 (* Requires the mutex to be held*)
@@ -158,7 +164,7 @@ let user_send_update_loop (conn, state) =
   Mutex.lock state.mutex;
   let uuid =
     insert_entity state Player 0. 0. 0. 0. "character" 100.
-      [ player_fists ]
+      [ player_fists ] 10
   in
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
@@ -261,7 +267,10 @@ let check_dead (e : Common.entity) =
   match e.kind with
   | Player ->
       if e.health > 0. then Some e
-      else
+      else (
+        print_endline
+          ( "Player uuid = " ^ string_of_int e.uuid
+          ^ " died with points = " ^ string_of_int e.points );
         Some
           {
             kind = Player;
@@ -275,10 +284,10 @@ let check_dead (e : Common.entity) =
             health = 100.;
             max_health = 100.;
             last_direction_moved = false;
-            inventory = [ player_fists ];
-            points = 0;
+            inventory = e.inventory;
+            points = e.points;
             last_attack_time = 0.;
-          }
+          } )
   | _ -> if e.health > 0. then Some e else None
 
 (* Only do physics operations on objects which exist *)
@@ -318,13 +327,13 @@ let start port =
   in
   (* TODO: remove these -- In MS2, these will be replaced by random
      generation algorithm *)
-  insert_entity state Ai 500. 0. 0. 0. "dromedary" 50. [ fists ]
+  insert_entity state Ai 500. 0. 0. 0. "dromedary" 50. [ fists ] 10
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai (-500.) 0. 0. 0. "trailer" 50. [ fists ]
+  insert_entity state Ai (-500.) 0. 0. 0. "trailer" 50. [ fists ] 10
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. 500. 0. 0. "trader" 50. [ fists ]
+  insert_entity state Ai 0. 500. 0. 0. "trader" 50. [ fists ] 10
   |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. (-500.) 0. 0. "camel" 50. [ fists ]
+  insert_entity state Ai 0. (-500.) 0. 0. "camel" 50. [ fists ] 10
   |> ignore |> ignore |> ignore;
 
   ( Thread.create physics_loop state,
