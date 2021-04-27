@@ -82,6 +82,59 @@ let draw_background screen hashmap grid x y size =
   let new_y = mod_float (-1.0 *. y) (512. *. size) in
   draw_tile screen hashmap grid new_x new_y
 
+let draw_inventory screen hashmap =
+  let inv_position_rect = Sdlvideo.rect 819 950 100 100 in
+  Sdlvideo.blit_surface ~dst_rect:inv_position_rect
+    ~src:(Hashtbl.find hashmap "inventory.png")
+    ~dst:screen ()
+
+let draw_items screen hashmap item_list =
+  let item_position_rect = Sdlvideo.rect 819 950 100 100 in
+  Sdlvideo.blit_surface ~dst_rect:item_position_rect
+    ~src:(Hashtbl.find hashmap "fists.png")
+    ~dst:screen ()
+
+let draw_golden_camel screen hashmap x y =
+  let golden_camel_position_rect =
+    Sdlvideo.rect
+      (int_of_float ((-1. *. x) +. 930.))
+      (int_of_float ((-1. *. y) +. 520.))
+      100 100
+  in
+  Sdlvideo.blit_surface ~dst_rect:golden_camel_position_rect
+    ~src:(Hashtbl.find hashmap "golden_camel.png")
+    ~dst:screen ()
+
+let check_height height =
+  if height < 0 then 0 else if height > 1060 then 1060 else height
+
+let check_width width =
+  if width < 0 then 0 else if width > 1800 then 1800 else width
+
+(*let check_x_y x y = if x > 0 && y > 0 then (*solve (opposite/adjacent)
+  = (960)/y*) (*y = 960 / (opposite/adjacent)*) let height = 960 / (x /
+  y) in (height, 0) else if x < 0 && y > 0 then (1800, 0) else if x < 0
+  && y < 0 then (1800, 1000) else (0, 1000)*)
+
+let draw_golden_camel_pointer screen hashmap x y =
+  print_endline (string_of_float x);
+  print_endline (string_of_float y);
+  if (x > 500. || x < -500.) || y > 500. || y < -500. then
+    let width =
+      int_of_float
+        (960. +. (-1. *. x *. 540. /. sqrt ((x *. x) +. (y *. y))))
+    in
+    let height =
+      int_of_float
+        (540. +. (-1. *. y *. 540. /. sqrt ((x *. x) +. (y *. y))))
+    in
+    let golden_camel_icon_position_rect =
+      Sdlvideo.rect width height 100 100
+    in
+    Sdlvideo.blit_surface ~dst_rect:golden_camel_icon_position_rect
+      ~src:(Hashtbl.find hashmap "golden_camel_icon.png")
+      ~dst:screen ()
+
 (**[run] takes in world state and hashmap and renders the world map and
    every entity in world with the associated graphic in hashmap*)
 let run (world_state : Common.world_state) hashmap =
@@ -99,8 +152,9 @@ let run (world_state : Common.world_state) hashmap =
       World_manager.get_player_xy world_state
       |> Option.value ~default:(0., 0.)
     in
-    print_endline (string_of_float x);
+    (*print_endline (string_of_float x);*)
     draw_background screen hashmap grid x y 6.;
+    draw_golden_camel screen hashmap x y;
     let time_begin = Sdltimer.get_ticks () in
     (*TODO unsync animations?*)
     let anim_frame = (Sdltimer.get_ticks () - start_time) / 150 in
@@ -111,6 +165,9 @@ let run (world_state : Common.world_state) hashmap =
           (w, h) (x, y))
       world
     |> ignore;
+    draw_inventory screen hashmap;
+    draw_items screen hashmap [];
+    draw_golden_camel_pointer screen hashmap x y;
     Sdlvideo.flip screen;
     let time_end = Sdltimer.get_ticks () in
     Sdltimer.delay (max ((1000 / 60) - (time_end - time_begin)) 0)
