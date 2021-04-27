@@ -41,7 +41,9 @@ let image_getter_render
               (not entity.last_direction_moved)
               (entity.vx = 0.0 && entity.vy = 0.0))
            anim_frame)
-    with Not_found -> Hashtbl.find hashmap "error"
+    with Not_found -> (
+      try Hashtbl.find hashmap (entity.graphic ^ ".png")
+      with Not_found -> Hashtbl.find hashmap "error.png" )
   in
   Sdlvideo.blit_surface ~dst_rect:position_rect ~src:source ~dst:screen
     ();
@@ -94,31 +96,13 @@ let draw_items screen hashmap item_list =
     ~src:(Hashtbl.find hashmap "fists.png")
     ~dst:screen ()
 
-let draw_golden_camel screen hashmap x y =
-  let golden_camel_position_rect =
-    Sdlvideo.rect
-      (int_of_float ((-1. *. x) +. 930.))
-      (int_of_float ((-1. *. y) +. 520.))
-      100 100
-  in
-  Sdlvideo.blit_surface ~dst_rect:golden_camel_position_rect
-    ~src:(Hashtbl.find hashmap "golden_camel.png")
-    ~dst:screen ()
-
 let check_height height =
   if height < 0 then 0 else if height > 1060 then 1060 else height
 
 let check_width width =
   if width < 0 then 0 else if width > 1800 then 1800 else width
 
-(*let check_x_y x y = if x > 0 && y > 0 then (*solve (opposite/adjacent)
-  = (960)/y*) (*y = 960 / (opposite/adjacent)*) let height = 960 / (x /
-  y) in (height, 0) else if x < 0 && y > 0 then (1800, 0) else if x < 0
-  && y < 0 then (1800, 1000) else (0, 1000)*)
-
 let draw_golden_camel_pointer screen hashmap x y =
-  print_endline (string_of_float x);
-  print_endline (string_of_float y);
   if (x > 500. || x < -500.) || y > 500. || y < -500. then
     let width =
       int_of_float
@@ -152,9 +136,7 @@ let run (world_state : Common.world_state) hashmap =
       World_manager.get_player_xy world_state
       |> Option.value ~default:(0., 0.)
     in
-    (*print_endline (string_of_float x);*)
     draw_background screen hashmap grid x y 6.;
-    draw_golden_camel screen hashmap x y;
     let time_begin = Sdltimer.get_ticks () in
     (*TODO unsync animations?*)
     let anim_frame = (Sdltimer.get_ticks () - start_time) / 150 in

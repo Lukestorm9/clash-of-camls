@@ -50,24 +50,24 @@ let norm a b = sqrt ((a *. a) +. (b *. b))
 
 let norm_entity_velocity (e : Common.entity) =
   let nvx =
-    if e.vx > 0. then 200. else if e.vx < 0. then -200. else 0.
+    if e.vx > 0. then 300. else if e.vx < 0. then -300. else 0.
   in
   let nvy =
-    if e.vy > 0. then 200. else if e.vy < 0. then -200. else 0.
+    if e.vy > 0. then 300. else if e.vy < 0. then -300. else 0.
   in
-  let norm = norm nvx nvy /. 200. in
+  let norm = norm nvx nvy /. 300. in
 
   { e with vx = nvx /. norm; vy = nvy /. norm }
 
 let process_movement (e : Common.entity) = function
   | Common.Left ->
-      { e with vx = 200.; last_direction_moved = false }
+      { e with vx = 300.; last_direction_moved = false }
       |> norm_entity_velocity
   | Common.Right ->
-      { e with vx = -200.; last_direction_moved = true }
+      { e with vx = -300.; last_direction_moved = true }
       |> norm_entity_velocity
-  | Common.Up -> { e with vy = -200. } |> norm_entity_velocity
-  | Common.Down -> { e with vy = 200. } |> norm_entity_velocity
+  | Common.Up -> { e with vy = -300. } |> norm_entity_velocity
+  | Common.Down -> { e with vy = 300. } |> norm_entity_velocity
 
 let inside_directed_circle
     e_x
@@ -107,6 +107,7 @@ let get_local_enemies state (entity : Common.entity) radius direction =
     Common.array_filter
       (fun ((i, e) : int * Common.entity) ->
         e.uuid <> entity.uuid
+        && (e.kind = Player || e.kind = Ai)
         && inside_directed_circle entity.x entity.y e.x e.y radius
              direction)
       index_data
@@ -166,8 +167,11 @@ let user_send_update_loop (conn, state) =
   let a = (Marshal.from_channel recv_chan : int) in
   print_endline ("logon w/ token = " ^ string_of_int a);
   Mutex.lock state.mutex;
+  let angle = Random.float (2. *. 3.1415) in
+  let x = 100. *. cos angle in
+  let y = 100. *. sin angle in
   let uuid =
-    insert_entity state Player 0. 0. 0. 0. "character" 100.
+    insert_entity state Player x y 0. 0. "character" 100.
       [ player_fists ] 10
   in
   Mutex.unlock state.mutex;
@@ -189,7 +193,8 @@ let user_send_update_loop (conn, state) =
       Mutex.unlock state.mutex;
 
       (* State send step *)
-      Marshal.to_channel send_chan copy [];
+      let now = Unix.gettimeofday () in
+      Marshal.to_channel send_chan (now, copy) [];
       flush send_chan;
 
       (* User action receive step *)
@@ -231,7 +236,7 @@ let update_min_dist last (e1 : Common.entity) i (e2 : Common.entity) =
   | _ -> last
 
 (* Compute AI movement for a single object at a single time. *)
-let apply_ai_step state i e : Common.entity =
+let apply_ai_step state i (e : Common.entity) : Common.entity =
   let closest = ref (250000., None) in
   let now = Unix.gettimeofday () in
   Array.iteri
@@ -262,13 +267,17 @@ let apply_ai_step state i e : Common.entity =
         dst2 < weapon.range ** 2.
         && now -. e.last_attack_time > weapon.cooldown
       then (
+        print_endline
+          ( "Attacking player w/ uuid = " ^ string_of_int i ^ " from "
+          ^ string_of_int e.uuid ^ " @" ^ string_of_float e.x ^ ", "
+          ^ string_of_float e.y );
         state.data.(i) <-
           Some { closest with health = closest.health -. weapon.damage };
         { e with vx = dvx; vy = dvy; last_attack_time = now } )
       else { e with vx = dvx; vy = dvy }
   | _, None -> { e with vx = 0.; vy = 0. }
 
-let apply_physics_step i (e : Common.entity) : Common.entity =
+let apply_physics_step (e : Common.entity) : Common.entity =
   let now = Unix.gettimeofday () in
   {
     e with
@@ -286,12 +295,13 @@ let check_dead (e : Common.entity) =
         print_endline
           ( "Player uuid = " ^ string_of_int e.uuid
           ^ " died with points = " ^ string_of_int e.points );
+        let angle = Random.float (2. *. 3.1415) in
         Some
           {
             kind = Player;
             uuid = e.uuid;
-            x = 0.;
-            y = 0.;
+            x = 100. *. cos angle;
+            y = 100. *. sin angle;
             vx = 0.;
             vy = 0.;
             time_sent_over = Unix.gettimeofday ();
@@ -307,27 +317,99 @@ let check_dead (e : Common.entity) =
 
 (* Only do physics operations on objects which exist *)
 let filter_objects state i (e : Common.entity option) =
-  match e with
-  | None -> None
-  | Some e -> (
-      match e.kind with
-      | Ai ->
-          apply_ai_step state i e |> apply_physics_step i |> check_dead
-      | Player | Physik -> apply_physics_step i e |> check_dead )
+  let res =
+    match e with
+    | None -> None
+    | Some e -> (
+        match e.kind with
+        | Ai ->
+            apply_ai_step state i e |> apply_physics_step |> check_dead
+        | Player | Physik -> apply_physics_step e |> check_dead )
+  in
+  state.data.(i) <- res
 
-let spawn_enemy_cluster state = ()
+let weapons = Loader.load_weapons ()
+
+let into_weapon (w : Loader.weapon) : Common.weapon =
+  {
+    name = w.name;
+    range = w.range;
+    damage = w.damage;
+    cooldown = w.cooldown;
+  }
+
+let find_weapon str : Common.weapon =
+  List.find (fun (s : Loader.weapon) -> s.name = str) weapons
+  |> into_weapon
+
+let enemies = Loader.load_enemies ()
+
+let find_enemy str : Loader.enemy =
+  List.find (fun (s : Loader.enemy) -> s.name = str) enemies
+
+let entity_of_enemy (enemy : Loader.enemy) x y : Common.entity =
+  {
+    kind = Ai;
+    uuid = -1;
+    x;
+    y;
+    vx = 0.;
+    vy = 0.;
+    health = enemy.health;
+    max_health = enemy.health;
+    graphic = enemy.graphic;
+    last_direction_moved = Random.bool ();
+    inventory = [ enemy.weapon |> into_weapon ];
+    last_attack_time = 0.;
+    time_sent_over = Unix.gettimeofday ();
+    points = enemy.points;
+  }
+
+let spawn_enemy_cluster state =
+  let angle = Random.float (2. *. 3.1415) in
+  let radius = 1200. +. Random.float 3000. in
+  let x = radius *. cos angle in
+  let y = radius *. sin angle in
+  let dromedarius = find_enemy "dromedarius" in
+  let dromedarius_sup = find_enemy "dromedarius superior" in
+  let options = [ dromedarius; dromedarius; dromedarius_sup ] in
+  let max = 2 + Random.int 3 in
+  for i = 1 to max do
+    match find_next_open state.data with
+    | Some uuid ->
+        let choice = Random.int (List.length options) in
+        let x = x +. Random.float 500. -. 250. in
+        let y = y +. Random.float 500. -. 250. in
+        let entity = entity_of_enemy (List.nth options choice) x y in
+        let entity = { entity with uuid } in
+        print_endline
+          ( "Creating enemy w/ uuid = " ^ string_of_int uuid ^ " at "
+          ^ string_of_float x ^ ", " ^ string_of_float y );
+        state.data.(uuid) <- Some entity
+    | None -> ()
+  done;
+  ()
 
 (* The physics loop, which is running all the time in the background.
    Set to run at approx 20 ticks per second. TODO: make time exact. *)
 let physics_loop state =
+  let compute_capacity array =
+    Array.fold_left
+      (fun acc v -> if Option.is_some v then acc + 1 else acc)
+      0 array
+  in
+
   while true do
     Thread.delay 0.05;
 
-    (* Do AI/Physics calculations*)
     Mutex.lock state.mutex;
-    let noveau = Array.mapi (filter_objects state) state.data in
-    let len = Array.length noveau in
-    Array.blit noveau 0 state.data 0 len;
+
+    (* Do AI/Physics calculations*)
+    Array.iteri (filter_objects state) state.data;
+
+    (* Spawn enemies if needed*)
+    if compute_capacity state.data < 150 then spawn_enemy_cluster state;
+
     Mutex.unlock state.mutex
   done;
   ()
@@ -342,20 +424,12 @@ let start port =
       points_gathered = ref 0;
     }
   in
-
-  let fists : Common.weapon =
-    { name = "fists"; range = 50.; damage = 20.; cooldown = 1. }
-  in
-  (* TODO: remove these -- In MS2, these will be replaced by random
-     generation algorithm *)
-  insert_entity state Ai 500. 0. 0. 0. "dromedary" 50. [ fists ] 10
-  |> ignore |> ignore |> ignore;
-  insert_entity state Ai (-500.) 0. 0. 0. "trailer" 50. [ fists ] 10
-  |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. 500. 0. 0. "trader" 50. [ fists ] 10
-  |> ignore |> ignore |> ignore;
-  insert_entity state Ai 0. (-500.) 0. 0. "camel" 50. [ fists ] 10
-  |> ignore |> ignore |> ignore;
+  insert_entity state Physik (-70.) 35. 0. 0. "trader" 100. [] (-10)
+  |> ignore;
+  insert_entity state Physik 50. (-10.) 0. 0. "trailer" 100. [] (-10)
+  |> ignore;
+  insert_entity state Physik 35. 25. 0. 0. "golden_camel" 100. [] (-10)
+  |> ignore;
 
   ( Thread.create physics_loop state,
     Thread.create network_loop (port, state) )

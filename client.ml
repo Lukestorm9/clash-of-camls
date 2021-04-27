@@ -19,6 +19,12 @@ let nowify (e : Common.entity option) =
       let now = Unix.gettimeofday () in
       Some { e with time_sent_over = now }
 
+let adjust_last_attack_time delta (e : Common.entity option) =
+  match e with
+  | None -> None
+  | Some e ->
+      Some { e with last_attack_time = e.last_attack_time +. delta }
+
 (* Client update loop. Pulls data from the server, and sticks it in the
    shared mutable state. *)
 let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
@@ -39,10 +45,14 @@ let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
   try
     while true do
       (* State receive step *)
-      let noveau =
-        (Marshal.from_channel recv_chan : Common.entity option array)
-        |> Array.map nowify
+      let (time, noveau) =
+        ( Marshal.from_channel recv_chan
+          : float * Common.entity option array )
       in
+      let noveau = Array.map nowify noveau in
+      let delta = Unix.gettimeofday () -. time in
+      let noveau = Array.map (adjust_last_attack_time delta) noveau in
+
       let len = Array.length noveau in
 
       (* State update step *)

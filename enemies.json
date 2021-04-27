@@ -7,9 +7,9 @@
 			"points": 3,
 			"weapon": {
 				"name": "headbutt",
-				"range": 2500.0,
+				"range": 50.0,
 				"damage": 10.0,
-				"cooldown": 3.0
+				"cooldown": 1.0
 			}
 		},
 		{
@@ -19,9 +19,9 @@
 			"points": 10,
 			"weapon": {
 				"name": "headbutt",
-				"range": 2500.0,
+				"range": 50.0,
 				"damage": 34.0,
-				"cooldown": 3.0
+				"cooldown": 1.0
 			}
 		}
 	]

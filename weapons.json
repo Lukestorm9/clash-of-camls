@@ -2,7 +2,7 @@
   "data": [
     {
       "name": "sword",
-      "range": 3000.0,
+      "range": 150.0,
       "damage": 30.0,
       "cooldown": 1.0
     },
