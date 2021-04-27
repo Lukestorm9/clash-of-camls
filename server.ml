@@ -294,7 +294,8 @@ let apply_physics_step (e : Common.entity) : Common.entity =
     e with
     x = e.x +. (e.vx *. (now -. e.time_sent_over));
     y = e.y +. (e.vy *. (now -. e.time_sent_over));
-    last_direction_moved = e.vx < 0.;
+    last_direction_moved =
+      (if e.vx <> 0. then e.vx < 0. else e.last_direction_moved);
     time_sent_over = now;
   }
 
