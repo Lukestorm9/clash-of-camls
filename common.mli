@@ -8,6 +8,8 @@ type entity_type =
   | Physik
   | Ai
   | Player
+  | Camel
+  | Merchant
 
 (* A weapon type *)
 type weapon = {

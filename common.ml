@@ -3,6 +3,8 @@ type entity_type =
   | Physik
   | Ai
   | Player
+  | Camel
+  | Merchant
 
 type weapon = {
   name : string;

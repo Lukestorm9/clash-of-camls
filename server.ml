@@ -107,7 +107,7 @@ let get_local_enemies state (entity : Common.entity) radius direction =
     Common.array_filter
       (fun ((i, e) : int * Common.entity) ->
         e.uuid <> entity.uuid
-        && (e.kind = Player || e.kind = Ai)
+        && (e.kind = Player || e.kind = Ai || e.kind = Camel)
         && inside_directed_circle entity.x entity.y e.x e.y radius
              direction)
       index_data
@@ -155,8 +155,19 @@ let do_action state uuid action =
   in
   match idex with None -> () | Some i -> perform i
 
-let player_fists : Common.weapon =
-  { name = "fists"; range = 150.; damage = 20.; cooldown = 0.25 }
+let weapons = Loader.load_weapons ()
+
+let into_weapon (w : Loader.weapon) : Common.weapon =
+  {
+    name = w.name;
+    range = w.range;
+    damage = w.damage;
+    cooldown = w.cooldown;
+  }
+
+let find_weapon str : Common.weapon =
+  List.find (fun (s : Loader.weapon) -> s.name = str) weapons
+  |> into_weapon
 
 (* The connection loop for a particular user. Loops forever. Suffers an
    exception when the user disconnects, which kill the thread. This
@@ -172,7 +183,7 @@ let user_send_update_loop (conn, state) =
   let y = 100. *. sin angle in
   let uuid =
     insert_entity state Player x y 0. 0. "character" 100.
-      [ player_fists ] 10
+      [ find_weapon "fists" ] 10
   in
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
@@ -324,23 +335,10 @@ let filter_objects state i (e : Common.entity option) =
         match e.kind with
         | Ai ->
             apply_ai_step state i e |> apply_physics_step |> check_dead
-        | Player | Physik -> apply_physics_step e |> check_dead )
+        | Player | Physik | Camel | Merchant ->
+            apply_physics_step e |> check_dead )
   in
   state.data.(i) <- res
-
-let weapons = Loader.load_weapons ()
-
-let into_weapon (w : Loader.weapon) : Common.weapon =
-  {
-    name = w.name;
-    range = w.range;
-    damage = w.damage;
-    cooldown = w.cooldown;
-  }
-
-let find_weapon str : Common.weapon =
-  List.find (fun (s : Loader.weapon) -> s.name = str) weapons
-  |> into_weapon
 
 let enemies = Loader.load_enemies ()
 
@@ -365,14 +363,15 @@ let entity_of_enemy (enemy : Loader.enemy) x y : Common.entity =
     points = enemy.points;
   }
 
-let spawn_enemy_cluster state =
-  let angle = Random.float (2. *. 3.1415) in
-  let radius = 1200. +. Random.float 3000. in
-  let x = radius *. cos angle in
-  let y = radius *. sin angle in
+let spawn_enemy_cluster state points =
+  let choice = Random.int (List.length points) in
+  let x, y = List.nth points choice in
+  let dromedarius_inf = find_enemy "dromedarius inferior" in
   let dromedarius = find_enemy "dromedarius" in
   let dromedarius_sup = find_enemy "dromedarius superior" in
-  let options = [ dromedarius; dromedarius; dromedarius_sup ] in
+  let options =
+    [ dromedarius_inf; dromedarius; dromedarius; dromedarius_sup ]
+  in
   let max = 2 + Random.int 3 in
   for i = 1 to max do
     match find_next_open state.data with
@@ -388,11 +387,12 @@ let spawn_enemy_cluster state =
         state.data.(uuid) <- Some entity
     | None -> ()
   done;
+  insert_entity state Camel x y 0. 0. "camel" 10. [] (-10) |> ignore;
   ()
 
 (* The physics loop, which is running all the time in the background.
    Set to run at approx 20 ticks per second. TODO: make time exact. *)
-let physics_loop state =
+let physics_loop (points, state) =
   let compute_capacity array =
     Array.fold_left
       (fun acc v -> if Option.is_some v then acc + 1 else acc)
@@ -408,11 +408,21 @@ let physics_loop state =
     Array.iteri (filter_objects state) state.data;
 
     (* Spawn enemies if needed*)
-    if compute_capacity state.data < 150 then spawn_enemy_cluster state;
+    if compute_capacity state.data < 150 then
+      spawn_enemy_cluster state points;
 
     Mutex.unlock state.mutex
   done;
   ()
+
+let rec gen_spawn_points i =
+  if i <= 0 then []
+  else
+    let angle = Random.float (2. *. 3.1415) in
+    let radius = 1200. +. Random.float 3000. in
+    let x = radius *. cos angle in
+    let y = radius *. sin angle in
+    (x, y) :: gen_spawn_points (i - 1)
 
 (* Start the physics and networking threads *)
 let start port =
@@ -430,6 +440,12 @@ let start port =
   |> ignore;
   insert_entity state Physik 35. 25. 0. 0. "golden_camel" 100. [] (-10)
   |> ignore;
+  let spawn_points = gen_spawn_points 30 in
+  List.iter
+    (fun (x, y) ->
+      insert_entity state Physik x y 0. 0. "oasis256" 100. [] (-10)
+      |> ignore)
+    spawn_points;
 
-  ( Thread.create physics_loop state,
+  ( Thread.create physics_loop (spawn_points, state),
     Thread.create network_loop (port, state) )
