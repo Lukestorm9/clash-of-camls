@@ -1,12 +1,13 @@
 let string_combiner graphic anim anim_frame =
   graphic ^ anim ^ string_of_int anim_frame ^ ".png"
 
-let anim_decider right idle attack =
+let anim_decider right idle attack weapon =
   (*this branch below is never called right now because there is no way
     of storing which way it was facing in previous frames before it
     stopped*)
-  if right && attack then "_fist_attack_right_"
-  else if (not right) && attack then "_fist_attack_left_"
+  print_endline ("_" ^ weapon ^ "_attack_right_");
+  if right && attack then "_" ^ weapon ^ "_attack_right_"
+  else if (not right) && attack then "_" ^ weapon ^ "_attack_left_"
   else if right && idle then "_idle_right_"
   else if right && not idle then "_walk_right_"
   else if (not right) && idle then "_idle_left_"
@@ -25,6 +26,46 @@ let draw_health screen hashmap x y health max_health =
   blit_image health_pos_rect hashmap screen
     ("health_bar_" ^ string_of_int (int_of_float health_num) ^ ".png")
 
+let score_to_string screen hashmap x y (num : char) len =
+  let score_pos_rect = Sdlvideo.rect (x - (6 * len)) (y - 13) 100 100 in
+  blit_image score_pos_rect hashmap screen (String.make 1 num ^ ".png")
+
+let draw_score screen hashmap x y score =
+  let score_string = string_of_int score in
+  let offset = ref 0 in
+  String.iter
+    (fun num ->
+      score_to_string screen hashmap (x + !offset) y num
+        (String.length score_string);
+      offset := 6 + !offset)
+    score_string
+
+let rect_helper x = Sdlvideo.rect (819 + (x * 94)) 950 100 100
+
+let draw_items screen hashmap (item_list : Common.weapon list) =
+  (*use list.map? for item_list*)
+  let item_name_list =
+    List.map (fun (x : Common.weapon) -> x.name) item_list
+  in
+  List.iteri
+    (fun offset weapon_name ->
+      Sdlvideo.blit_surface ~dst_rect:(rect_helper offset)
+        ~src:(Hashtbl.find hashmap (weapon_name ^ ".png"))
+        ~dst:screen ())
+    item_name_list
+
+let draw_inventory screen hashmap =
+  let inv_position_rect = Sdlvideo.rect 819 950 100 100 in
+  Sdlvideo.blit_surface ~dst_rect:inv_position_rect
+    ~src:(Hashtbl.find hashmap "inventory.png")
+    ~dst:screen ()
+
+let weapon_check (weapon_list : Common.weapon list) =
+  if List.length weapon_list = 0 then "no_weapon"
+  else
+    let weapon = List.hd weapon_list in
+    weapon.name
+
 let image_getter_render
     (entity : Common.entity)
     hashmap
@@ -38,12 +79,17 @@ let image_getter_render
   let now = Unix.gettimeofday () in
   let source =
     try
+      let weapon_name = weapon_check entity.inventory in
+      print_endline "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+      print_endline weapon_name;
+      print_endline "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
       Hashtbl.find hashmap
         (string_combiner entity.graphic
            (anim_decider
               (not entity.last_direction_moved)
               (entity.vx = 0.0 && entity.vy = 0.0)
-              (now -. entity.last_attack_time < 0.55))
+              (now -. entity.last_attack_time < 0.55)
+              weapon_name)
            anim_frame)
     with Not_found -> (
       try Hashtbl.find hashmap (entity.graphic ^ ".png")
@@ -53,7 +99,11 @@ let image_getter_render
     ();
   if entity.kind = Player || entity.kind = Ai then
     draw_health screen hashmap x_coord y_coord entity.health
-      entity.max_health
+      entity.max_health;
+  if entity.kind = Player then (
+    draw_score screen hashmap x_coord y_coord entity.points;
+    draw_inventory screen hashmap;
+    draw_items screen hashmap entity.inventory )
 
 let rec generate_y height background_size x y acc =
   match height with
@@ -87,18 +137,6 @@ let draw_background screen hashmap grid x y size =
   let new_x = mod_float (-1.0 *. x) (512. *. size) in
   let new_y = mod_float (-1.0 *. y) (512. *. size) in
   draw_tile screen hashmap grid new_x new_y
-
-let draw_inventory screen hashmap =
-  let inv_position_rect = Sdlvideo.rect 819 950 100 100 in
-  Sdlvideo.blit_surface ~dst_rect:inv_position_rect
-    ~src:(Hashtbl.find hashmap "inventory.png")
-    ~dst:screen ()
-
-let draw_items screen hashmap item_list =
-  let item_position_rect = Sdlvideo.rect 819 950 100 100 in
-  Sdlvideo.blit_surface ~dst_rect:item_position_rect
-    ~src:(Hashtbl.find hashmap "fists.png")
-    ~dst:screen ()
 
 let check_height height =
   if height < 0 then 0 else if height > 1060 then 1060 else height
@@ -151,8 +189,6 @@ let run (world_state : Common.world_state) hashmap =
           (w, h) (x, y))
       world
     |> ignore;
-    draw_inventory screen hashmap;
-    draw_items screen hashmap [];
     draw_golden_camel_pointer screen hashmap x y;
     Sdlvideo.flip screen;
     let time_end = Sdltimer.get_ticks () in
