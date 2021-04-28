@@ -126,7 +126,6 @@ let process_attack state (entity : Common.entity) direction =
         state.data.(i) <- Some e;
         if e.health <= 0. then (
           extra_pts := !extra_pts + e.points;
-          print_endline ("Got points = " ^ string_of_int e.points);
           state.points_gathered :=
             e.points + state.points_gathered.contents ))
       enemies;
@@ -267,7 +266,7 @@ let apply_enemy_step state i (e : Common.entity) : Common.entity =
   let now = Unix.gettimeofday () in
   (* TODO: better scaling*)
   let difficulty_value =
-    2.718 ** (float_of_int state.points_gathered.contents *. 0.025)
+    2.718 ** (float_of_int state.points_gathered.contents *. 0.0025)
   in
   let difficulty_factor = 2.5 -. (4. /. (1. +. difficulty_value)) in
   match closest state e 250000. Player with
