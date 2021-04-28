@@ -124,8 +124,9 @@ let process_attack state (entity : Common.entity) direction =
       (fun ((i, e) : int * Common.entity) ->
         let e = { e with health = e.health -. weapon.damage } in
         state.data.(i) <- Some e;
-        if e.health < 0. then (
+        if e.health <= 0. then (
           extra_pts := !extra_pts + e.points;
+          print_endline ("Got points = " ^ string_of_int e.points);
           state.points_gathered :=
             e.points + state.points_gathered.contents ))
       enemies;
@@ -311,8 +312,6 @@ let follow state (e : Common.entity) =
         | dst2, Some (i, closest) ->
             let dcx = e.x -. closest.x in
             let dcy = e.y -. closest.y in
-            print_endline
-              (string_of_float dcx ^ " ! " ^ string_of_float dcy);
             let norm = 0.01 +. norm dcx dcy in
             (dcx *. 50. /. norm, dcy *. 50. /. norm)
         | _, None -> (0., 0.)
