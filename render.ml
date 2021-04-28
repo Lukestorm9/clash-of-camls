@@ -5,7 +5,6 @@ let anim_decider right idle attack weapon =
   (*this branch below is never called right now because there is no way
     of storing which way it was facing in previous frames before it
     stopped*)
-  print_endline ("_" ^ weapon ^ "_attack_right_");
   if right && attack then "_" ^ weapon ^ "_attack_right_"
   else if (not right) && attack then "_" ^ weapon ^ "_attack_left_"
   else if right && idle then "_idle_right_"
@@ -27,7 +26,9 @@ let draw_health screen hashmap x y health max_health =
     ("health_bar_" ^ string_of_int (int_of_float health_num) ^ ".png")
 
 let score_to_string screen hashmap x y (num : char) len =
-  let score_pos_rect = Sdlvideo.rect (x - (6 * len)) (y - 13) 100 100 in
+  let score_pos_rect =
+    Sdlvideo.rect (x - (12 * len)) (y - 17) 100 100
+  in
   blit_image score_pos_rect hashmap screen (String.make 1 num ^ ".png")
 
 let draw_score screen hashmap x y score =
@@ -37,7 +38,7 @@ let draw_score screen hashmap x y score =
     (fun num ->
       score_to_string screen hashmap (x + !offset) y num
         (String.length score_string);
-      offset := 6 + !offset)
+      offset := 12 + !offset)
     score_string
 
 let rect_helper x = Sdlvideo.rect (819 + (x * 94)) 950 100 100
@@ -80,9 +81,6 @@ let image_getter_render
   let source =
     try
       let weapon_name = weapon_check entity.inventory in
-      print_endline "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-      print_endline weapon_name;
-      print_endline "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
       Hashtbl.find hashmap
         (string_combiner entity.graphic
            (anim_decider
