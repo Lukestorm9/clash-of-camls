@@ -197,9 +197,9 @@ let world_state_maker ~data ~mutex ~uuid ~user_command :
     Common.world_state =
   { data; mutex; uuid; user_command }
 
-let world_state_maker_server ~data ~mutex ~highest_uuid :
+let world_state_maker_server ~data ~points_gathered ~mutex :
     Server.world_state =
-  { data; mutex; highest_uuid }
+  { data; points_gathered; mutex }
 
 let entity_maker
     ~kind
@@ -290,10 +290,6 @@ let entity_9_left =
 let entity_9_left' =
   entity_maker Common.Player 9 5. 1. 5. 5. 1. "camel" 0. true [] 0 0.
 
-let entity_shared =
-  entity_maker Common.Player 10 10. (-2.) 5. 5. 1. "camel" 0. true [] 0
-    0.
-
 let empty_world =
   world_state_maker [||] (Mutex.create ()) (ref (Some 0))
     (ref Common.Nothing)
@@ -341,26 +337,26 @@ let world_4 =
     (Mutex.create ()) (ref (Some 4)) (ref Common.Nothing)
 
 let empty_world_server =
-  world_state_maker_server [||] (Mutex.create ()) (ref 0)
+  world_state_maker_server [||] (ref 0) (Mutex.create ())
 
 let world_1_server =
   world_state_maker_server
     [| Some non_moving_entity_at_origin; Some entity_3 |]
-    (Mutex.create ()) (ref 3)
+    (ref 3) (Mutex.create ())
 
 let world_2_server =
   world_state_maker_server
     [|
-      Some non_moving_entity_at_origin;
-      Some moving_entity_at_origin;
-      Some entity_3;
+      (*0*) Some non_moving_entity_at_origin;
+      (*1*) Some moving_entity_at_origin;
+      (*2*) Some entity_3;
     |]
-    (Mutex.create ()) (ref 3)
+    (ref 3) (Mutex.create ())
 
 let world_3_server =
   world_state_maker_server
     [| Some non_moving_entity_at_origin; Some entity_3; Some entity_4 |]
-    (Mutex.create ()) (ref 3)
+    (ref 3) (Mutex.create ())
 
 let world_4_server =
   world_state_maker_server
@@ -374,9 +370,8 @@ let world_4_server =
       (*6*) Some entity_7_right';
       (*7*) Some entity_8_up';
       (*8*) Some entity_9_left';
-      (*9*) Some entity_shared;
     |]
-    (Mutex.create ()) (ref 3)
+    (ref 3) (Mutex.create ())
 
 let boundary_point = sqrt ((250000. ** 2.) /. 2.)
 
@@ -454,10 +449,8 @@ let server_tests =
       empty_world_server non_moving_entity_at_origin 1. Up [];
     server_get_local_enemies_tests
       "Trying to find an enemy on world_2_server | r= 0, entity= \
-       non_moving-entity_at_orgin | Annotation: with two entities at \
-       same location "
-      world_2_server non_moving_entity_at_origin 0. Up
-      [ (1, moving_entity_at_origin) ];
+       non_moving-entity_at_orgin"
+      world_2_server non_moving_entity_at_origin 0. Up [];
     server_get_local_enemies_tests
       "Trying to find an enemy on world_2_server | r= 100.0, entity= \
        entity_3"
@@ -515,22 +508,22 @@ let server_tests =
       "Trying to find enemies on world_4_server | r=boundary_point_2, \
        entity= entity_5_center, d = Up"
       world_4_server entity_5_center boundary_point_2 Up
-      [ (9, entity_shared); (7, entity_8_up'); (3, entity_8_up) ];
+      [ (7, entity_8_up'); (3, entity_8_up) ];
     server_get_local_enemies_tests
       "Trying to find enemies on world_4_server | r=boundary_point_2, \
        entity= entity_5_center, d = Down"
       world_4_server entity_5_center boundary_point_2 Down
-      [ (9, entity_shared); (5, entity_6_down'); (1, entity_6_down) ];
+      [ (5, entity_6_down'); (1, entity_6_down) ];
     server_get_local_enemies_tests
       "Trying to find enemies on world_4_server | r=boundary_point_2, \
        entity= entity_5_center, d = Down"
       world_4_server entity_5_center boundary_point_2 Right
-      [ (9, entity_shared); (6, entity_7_right'); (2, entity_7_right) ];
+      [ (6, entity_7_right'); (2, entity_7_right) ];
     server_get_local_enemies_tests
       "Trying to find enemies on world_4_server | r=boundary_point_2, \
        entity= entity_5_center, d = Down"
       world_4_server entity_5_center boundary_point_2 Left
-      [ (8, entity_9_left'); (4, entity_9_left); (9, entity_shared) ];
+      [ (8, entity_9_left'); (4, entity_9_left) ];
   ]
 
 let suite =
