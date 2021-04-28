@@ -1,11 +1,13 @@
 let string_combiner graphic anim anim_frame =
   graphic ^ anim ^ string_of_int anim_frame ^ ".png"
 
-let anim_decider right idle =
+let anim_decider right idle attack =
   (*this branch below is never called right now because there is no way
     of storing which way it was facing in previous frames before it
     stopped*)
-  if right && idle then "_idle_right_"
+  if right && attack then "_fist_attack_right_"
+  else if (not right) && attack then "_fist_attack_left_"
+  else if right && idle then "_idle_right_"
   else if right && not idle then "_walk_right_"
   else if (not right) && idle then "_idle_left_"
   else if (not right) && not idle then "_walk_left_"
@@ -33,13 +35,15 @@ let image_getter_render
   let x_coord = int_of_float entity.x - 48 + (w / 2) - int_of_float x in
   let y_coord = int_of_float entity.y - 48 + (h / 2) - int_of_float y in
   let position_rect = Sdlvideo.rect x_coord y_coord 100 100 in
+  let now = Unix.gettimeofday () in
   let source =
     try
       Hashtbl.find hashmap
         (string_combiner entity.graphic
            (anim_decider
               (not entity.last_direction_moved)
-              (entity.vx = 0.0 && entity.vy = 0.0))
+              (entity.vx = 0.0 && entity.vy = 0.0)
+              (now -. entity.last_attack_time < 0.55))
            anim_frame)
     with Not_found -> (
       try Hashtbl.find hashmap (entity.graphic ^ ".png")
