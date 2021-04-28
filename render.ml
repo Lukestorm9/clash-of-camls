@@ -51,8 +51,7 @@ let image_getter_render
   in
   Sdlvideo.blit_surface ~dst_rect:position_rect ~src:source ~dst:screen
     ();
-  if entity.kind = Player || entity.kind = Ai || entity.kind = Camel
-  then
+  if entity.kind = Player || entity.kind = Ai then
     draw_health screen hashmap x_coord y_coord entity.health
       entity.max_health
 

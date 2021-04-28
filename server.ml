@@ -107,7 +107,7 @@ let get_local_enemies state (entity : Common.entity) radius direction =
     Common.array_filter
       (fun ((i, e) : int * Common.entity) ->
         e.uuid <> entity.uuid
-        && (e.kind = Player || e.kind = Ai || e.kind = Camel)
+        && (e.kind = Player || e.kind = Ai)
         && inside_directed_circle entity.x entity.y e.x e.y radius
              direction)
       index_data
@@ -237,30 +237,39 @@ let network_loop (port, state) =
 
 (* Compare the distance information encoded in last with e1 <-> e2 if e1
    is a player, picking whichever is least. *)
-let update_min_dist last (e1 : Common.entity) i (e2 : Common.entity) =
-  match e1.kind with
-  | Player ->
+let update_min_dist
+    last
+    (e1 : Common.entity)
+    i
+    (e2 : Common.entity)
+    kind =
+  match e1.kind = kind && e1 <> e2 with
+  | true ->
       let dx = e1.x -. e2.x in
       let dy = e1.y -. e2.y in
       let dst2 = (dx *. dx) +. (dy *. dy) in
       if dst2 < (last |> fst) then (dst2, Some (i, e1)) else last
   | _ -> last
 
-(* Compute AI movement for a single object at a single time. *)
-let apply_ai_step state i (e : Common.entity) : Common.entity =
-  let closest = ref (250000., None) in
-  let now = Unix.gettimeofday () in
+let closest state (e : Common.entity) range kind =
+  let closest = ref (range, None) in
   Array.iteri
     (fun i -> function
-      | Some entity -> closest := update_min_dist !closest entity i e
+      | Some entity ->
+          closest := update_min_dist !closest entity i e kind
       | None -> ())
     state.data;
+  !closest
+
+(* Compute AI movement for a single object at a single time. *)
+let apply_enemy_step state i (e : Common.entity) : Common.entity =
+  let now = Unix.gettimeofday () in
   (* TODO: better scaling*)
   let difficulty_value =
     2.718 ** (float_of_int state.points_gathered.contents *. 0.025)
   in
   let difficulty_factor = 2.5 -. (4. /. (1. +. difficulty_value)) in
-  match !closest with
+  match closest state e 250000. Player with
   | dst2, Some (i, closest) ->
       let dx = closest.x -. e.x in
       let dy = closest.y -. e.y in
@@ -280,13 +289,42 @@ let apply_ai_step state i (e : Common.entity) : Common.entity =
       then (
         print_endline
           ( "Attacking player w/ uuid = " ^ string_of_int i ^ " from "
-          ^ string_of_int e.uuid ^ " @" ^ string_of_float e.x ^ ", "
+          ^ string_of_int e.uuid ^ " @ " ^ string_of_float e.x ^ ", "
           ^ string_of_float e.y );
         state.data.(i) <-
           Some { closest with health = closest.health -. weapon.damage };
         { e with vx = dvx; vy = dvy; last_attack_time = now } )
       else { e with vx = dvx; vy = dvy }
   | _, None -> { e with vx = 0.; vy = 0. }
+
+(* entity must be a camel *)
+let try_acquire_imprint state (e : Common.entity) =
+  match closest state e 250000. Player with
+  | _, Some (i, closest) -> { e with kind = Camel (Some i) }
+  | _, None -> e
+
+let follow state (e : Common.entity) =
+  match e.kind with
+  | Camel (Some uuid) ->
+      let fx, fy =
+        match closest state e 2000. (Camel (Some uuid)) with
+        | dst2, Some (i, closest) ->
+            let dcx = e.x -. closest.x in
+            let dcy = e.y -. closest.y in
+            print_endline
+              (string_of_float dcx ^ " ! " ^ string_of_float dcy);
+            let norm = 0.01 +. norm dcx dcy in
+            (dcx *. 50. /. norm, dcy *. 50. /. norm)
+        | _, None -> (0., 0.)
+      in
+      let target = Option.get state.data.(uuid) in
+      let dx = target.x -. e.x in
+      let dy = target.y -. e.y in
+      let norm = 1. +. norm dx dy in
+      let dvx = if norm > 150. then 250. *. dx /. norm else 0. in
+      let dvy = if norm > 150. then 250. *. dy /. norm else 0. in
+      { e with vx = dvx +. fx; vy = dvy +. fy }
+  | _ -> e
 
 let apply_physics_step (e : Common.entity) : Common.entity =
   let now = Unix.gettimeofday () in
@@ -335,8 +373,14 @@ let filter_objects state i (e : Common.entity option) =
     | Some e -> (
         match e.kind with
         | Ai ->
-            apply_ai_step state i e |> apply_physics_step |> check_dead
-        | Player | Physik | Camel | Merchant ->
+            apply_enemy_step state i e
+            |> apply_physics_step |> check_dead
+        | Camel None ->
+            try_acquire_imprint state e
+            |> apply_physics_step |> check_dead
+        | Camel (Some i) ->
+            follow state e |> apply_physics_step |> check_dead
+        | Player | Physik | Merchant ->
             apply_physics_step e |> check_dead )
   in
   state.data.(i) <- res
@@ -388,7 +432,8 @@ let spawn_enemy_cluster state points =
         state.data.(uuid) <- Some entity
     | None -> ()
   done;
-  insert_entity state Camel x y 0. 0. "camel" 10. [] (-10) |> ignore;
+  insert_entity state (Camel None) x y 0. 0. "camel" 10. [] (-10)
+  |> ignore;
   ()
 
 (* The physics loop, which is running all the time in the background.

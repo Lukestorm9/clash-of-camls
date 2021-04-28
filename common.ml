@@ -3,7 +3,7 @@ type entity_type =
   | Physik
   | Ai
   | Player
-  | Camel
+  | Camel of int option
   | Merchant
 
 type weapon = {
