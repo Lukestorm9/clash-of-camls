@@ -5,12 +5,20 @@ let anim_decider right idle attack weapon =
   (*this branch below is never called right now because there is no way
     of storing which way it was facing in previous frames before it
     stopped*)
-  if right && attack then "_" ^ weapon ^ "_attack_right_"
+  if weapon = "" then
+    if right && attack then "_attack_right_"
+    else if (not right) && attack then "_attack_left_"
+    else if right && idle then "_idle_right_"
+    else if right && not idle then "_walk_right_"
+    else if (not right) && idle then "_idle_left_"
+    else if (not right) && not idle then "_walk_left_"
+    else "error"
+  else if right && attack then "_" ^ weapon ^ "_attack_right_"
   else if (not right) && attack then "_" ^ weapon ^ "_attack_left_"
-  else if right && idle then "_idle_right_"
-  else if right && not idle then "_walk_right_"
-  else if (not right) && idle then "_idle_left_"
-  else if (not right) && not idle then "_walk_left_"
+  else if right && idle then "_" ^ weapon ^ "_idle_right_"
+  else if right && not idle then "_" ^ weapon ^ "_walk_right_"
+  else if (not right) && idle then "_" ^ weapon ^ "_idle_left_"
+  else if (not right) && not idle then "_" ^ weapon ^ "_walk_left_"
   else "error"
 
 let blit_image pos_rect hashmap screen (graphic : string) =
@@ -62,7 +70,7 @@ let draw_inventory screen hashmap =
     ~dst:screen ()
 
 let weapon_check (weapon_list : Common.weapon list) =
-  if List.length weapon_list = 0 then "no_weapon"
+  if List.length weapon_list = 0 then ""
   else
     let weapon = List.hd weapon_list in
     weapon.name
