@@ -107,10 +107,11 @@ let image_getter_render
   if entity.kind = Player || entity.kind = Ai then
     draw_health screen hashmap x_coord y_coord entity.health
       entity.max_health;
+  if entity.kind = Player then
+    draw_score screen hashmap x_coord y_coord entity.points;
   match uuid with
   | Some uuid ->
       if entity.uuid = uuid then (
-        draw_score screen hashmap x_coord y_coord entity.points;
         draw_inventory screen hashmap;
         draw_items screen hashmap entity.inventory )
   | None -> ()
