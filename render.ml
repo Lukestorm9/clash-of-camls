@@ -81,7 +81,8 @@ let image_getter_render
     screen
     anim_frame
     (w, h)
-    (x, y) =
+    (x, y)
+    uuid =
   let x_coord = int_of_float entity.x - 48 + (w / 2) - int_of_float x in
   let y_coord = int_of_float entity.y - 48 + (h / 2) - int_of_float y in
   let position_rect = Sdlvideo.rect x_coord y_coord 100 100 in
@@ -106,10 +107,13 @@ let image_getter_render
   if entity.kind = Player || entity.kind = Ai then
     draw_health screen hashmap x_coord y_coord entity.health
       entity.max_health;
-  if entity.kind = Player then (
-    draw_score screen hashmap x_coord y_coord entity.points;
-    draw_inventory screen hashmap;
-    draw_items screen hashmap entity.inventory )
+  match uuid with
+  | Some uuid ->
+      if entity.uuid = uuid then (
+        draw_score screen hashmap x_coord y_coord entity.points;
+        draw_inventory screen hashmap;
+        draw_items screen hashmap entity.inventory )
+  | None -> ()
 
 let rec generate_y height background_size x y acc =
   match height with
@@ -184,6 +188,7 @@ let run (world_state : Common.world_state) hashmap =
       World_manager.get_player_xy world_state
       |> Option.value ~default:(0., 0.)
     in
+    let player_uuid = World_manager.get_player_uuid world_state in
     draw_background screen hashmap grid x y 6.;
     let time_begin = Sdltimer.get_ticks () in
     (*TODO unsync animations?*)
@@ -192,7 +197,7 @@ let run (world_state : Common.world_state) hashmap =
       (fun i (e : Common.entity) ->
         image_getter_render e hashmap screen
           ((anim_frame + i) mod 4)
-          (w, h) (x, y))
+          (w, h) (x, y) player_uuid)
       world
     |> ignore;
     draw_golden_camel_pointer screen hashmap x y;
