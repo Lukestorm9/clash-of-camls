@@ -53,7 +53,7 @@ let xy (state : Common.world_state) =
       | [] -> None
       | h :: _ ->
           let corrected = modify_h h in
-          Some (corrected.x, corrected.y))
+          Some (corrected.x, corrected.y) )
   | None -> None
 
 let get_player_xy (state : Common.world_state) =
@@ -62,5 +62,8 @@ let get_player_xy (state : Common.world_state) =
   Mutex.unlock state.mutex;
   location
 
-
-(**Inventory system: keep track which items.*)
+let get_player_uuid (state : Common.world_state) =
+  Mutex.lock state.mutex;
+  let uuid = state.uuid.contents in
+  Mutex.unlock state.mutex;
+  uuid

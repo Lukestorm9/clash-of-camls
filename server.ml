@@ -182,12 +182,22 @@ let user_send_update_loop (conn, state) =
   let x = 100. *. cos angle in
   let y = 100. *. sin angle in
   let weapons =
-    [ find_weapon "fists"; find_weapon "fists"; find_weapon "sword" ]
+    [
+      find_weapon "fists";
+      find_weapon "sword";
+      find_weapon "fists";
+      find_weapon "sword";
+      find_weapon "fists";
+    ]
   in
   let weapon_idx = Random.int (List.length weapons) in
   let uuid =
     insert_entity state Player x y 0. 0. "character" 100.
-      [ find_weapon "fists"; find_weapon "sword"; find_weapon "fists" ]
+      [
+        List.nth weapons weapon_idx;
+        find_weapon "sword";
+        find_weapon "fists";
+      ]
       10
   in
   Mutex.unlock state.mutex;
@@ -485,9 +495,10 @@ let start port =
   in
   insert_entity state Physik (-50.) 65. 0. 0. "trader" 100. [] (-10)
   |> ignore;
-  insert_entity state Physik 50. (-10.) 0. 0. "trailer" 100. [] (-10)
+  insert_entity state Physik 35. 30. 0. 0. "trailer" 100. [] (-10)
   |> ignore;
-  insert_entity state Physik 35. 25. 0. 0. "golden_camel" 100. [] (-10)
+  insert_entity state Physik 35. (-25.) 0. 0. "golden_camel" 100. []
+    (-10)
   |> ignore;
   let spawn_points = gen_spawn_points 30 in
   List.iter

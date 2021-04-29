@@ -10,4 +10,4 @@ val get_local :
   * y) is exists else None*)
 val get_player_xy : Common.world_state -> (float * float) option
 
-
+val get_player_uuid : Common.world_state -> int option
