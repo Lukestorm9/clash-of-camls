@@ -359,6 +359,16 @@ let check_dead (e : Common.entity) =
           ( "Player uuid = " ^ string_of_int e.uuid
           ^ " died with points = " ^ string_of_int e.points );
         let angle = Random.float (2. *. 3.1415) in
+        let weapons =
+          [
+            find_weapon "fists";
+            find_weapon "sword";
+            find_weapon "fists";
+            find_weapon "sword";
+            find_weapon "fists";
+          ]
+        in
+        let weapon_idx = Random.int (List.length weapons) in
         Some
           {
             kind = Player;
@@ -372,7 +382,7 @@ let check_dead (e : Common.entity) =
             health = 100.;
             max_health = 100.;
             last_direction_moved = false;
-            inventory = e.inventory;
+            inventory = [ List.nth weapons weapon_idx ];
             points = max (e.points / 2) 0;
             last_attack_time = 0.;
           } )
