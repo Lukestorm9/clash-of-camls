@@ -181,9 +181,14 @@ let user_send_update_loop (conn, state) =
   let angle = Random.float (2. *. 3.1415) in
   let x = 100. *. cos angle in
   let y = 100. *. sin angle in
+  let weapons =
+    [ find_weapon "fists"; find_weapon "fists"; find_weapon "sword" ]
+  in
+  let weapon_idx = Random.int (List.length weapons) in
   let uuid =
     insert_entity state Player x y 0. 0. "character" 100.
-      [ find_weapon "fists" ] 10
+      [ find_weapon "fists"; find_weapon "sword"; find_weapon "fists" ]
+      10
   in
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
@@ -358,7 +363,7 @@ let check_dead (e : Common.entity) =
             max_health = 100.;
             last_direction_moved = false;
             inventory = e.inventory;
-            points = e.points;
+            points = max (e.points / 2) 0;
             last_attack_time = 0.;
           } )
   | _ -> if e.health > 0. then Some e else None
@@ -463,7 +468,7 @@ let rec gen_spawn_points i =
   if i <= 0 then []
   else
     let angle = Random.float (2. *. 3.1415) in
-    let radius = 1200. +. Random.float 3000. in
+    let radius = 3000. +. Random.float 6000. in
     let x = radius *. cos angle in
     let y = radius *. sin angle in
     (x, y) :: gen_spawn_points (i - 1)
@@ -478,7 +483,7 @@ let start port =
       points_gathered = ref 0;
     }
   in
-  insert_entity state Physik (-70.) 35. 0. 0. "trader" 100. [] (-10)
+  insert_entity state Physik (-50.) 65. 0. 0. "trader" 100. [] (-10)
   |> ignore;
   insert_entity state Physik 50. (-10.) 0. 0. "trailer" 100. [] (-10)
   |> ignore;
