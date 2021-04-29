@@ -179,8 +179,8 @@ let user_send_update_loop (conn, state) =
   print_endline ("logon w/ token = " ^ string_of_int a);
   Mutex.lock state.mutex;
   let angle = Random.float (2. *. 3.1415) in
-  let x = 100. *. cos angle in
-  let y = 100. *. sin angle in
+  let x = 300. *. cos angle in
+  let y = 300. *. sin angle in
   let weapons =
     [
       find_weapon "fists";
@@ -503,11 +503,11 @@ let start port =
       points_gathered = ref 0;
     }
   in
-  insert_entity state Physik (-50.) 65. 0. 0. "trader" 100. [] (-10)
+  insert_entity state Physik (-450.) 10. 0. 0. "trailer" 100. [] (-10)
   |> ignore;
-  insert_entity state Physik 35. 30. 0. 0. "trailer" 100. [] (-10)
+  insert_entity state Physik (-460.) 140. 0. 0. "trader" 100. [] (-10)
   |> ignore;
-  insert_entity state Physik 35. (-25.) 0. 0. "golden_camel" 100. []
+  insert_entity state Physik (-100.) 0. 0. 0. "golden_camel" 100. []
     (-10)
   |> ignore;
   let spawn_points = gen_spawn_points 30 in
