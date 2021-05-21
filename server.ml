@@ -488,7 +488,7 @@ let rec gen_spawn_points i =
   if i <= 0 then []
   else
     let angle = Random.float (2. *. 3.1415) in
-    let radius = 3000. +. Random.float 6000. in
+    let radius = 2000. +. Random.float 4000. in
     let x = radius *. cos angle in
     let y = radius *. sin angle in
     (x, y) :: gen_spawn_points (i - 1)

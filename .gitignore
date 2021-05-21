@@ -2,3 +2,6 @@ setup.data
 _build/
 *.byte
 *.zip
+_doc/
+_doc.private/
+_doc.public/
