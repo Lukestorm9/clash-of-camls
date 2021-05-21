@@ -21,11 +21,13 @@ open OUnit2
 open World_manager
 open Server
 
+(*[print_entity_type] prints the entity type*)
 let print_entity_type (kind : Common.entity_type) =
   if kind = Physik then "Physik"
   else if kind = Ai then "Ai"
   else "Player"
 
+(*[print_weapons] prints the weapon list*)
 let rec print_weapons (weapons_list : Common.weapon list) acc =
   match weapons_list with
   | [] -> "[\n" ^ acc ^ " ]"
@@ -40,6 +42,7 @@ let rec print_weapons (weapons_list : Common.weapon list) acc =
       in
       print_weapons t (weapon ^ acc)
 
+(*[print_entity] prints the all of the entity information *)
 let print_entity (h : Common.entity) =
   "{ " ^ "kind = "
   ^ print_entity_type h.kind
@@ -61,8 +64,8 @@ let print_entity (h : Common.entity) =
   ^ string_of_float h.last_attack_time
   ^ " }" ^ ";\n"
 
-(*[print_entity] prints the given entity_list. An entity is defined in
-  Common.mli*)
+(*[print_entity_list] prints the given entity_list. All information
+  about each entity will be printed. An entity is defined in Common.mli*)
 let rec print_entity_list acc (entity_list : Common.entity list) =
   match entity_list with
   | [] -> "[\n" ^ acc ^ " ]"
@@ -99,6 +102,8 @@ let print_float_pair_option (pair : (float * float) option) =
       "( " ^ string_of_float s ^ ", " ^ string_of_float t ^ " )"
   | None -> "None"
 
+(*[check_within_bounds_helper] is helper function for check_within
+  bounds.*)
 let rec check_within_bounds_helper
     (expected_world : Common.entity list)
     (calculated_world : Common.entity list)
@@ -115,6 +120,8 @@ let rec check_within_bounds_helper
       else false
   | _ :: _, [] | [], _ :: _ -> false
 
+(*[check_within_bounds_float_pairs_helper] is helper function for
+  check_within_bounds_float_pairs.*)
 let check_within_bounds_float_pair_helper
     (float_pair_expected : (float * float) option)
     (float_pair_given : (float * float) option)
@@ -132,6 +139,9 @@ let check_within_bounds_float_pair_helper
       then true
       else false
 
+(*[check_within_bounds_float_pair] checks if each float option pair is
+  within bounds. Check documentation for [check_within_bounds] to
+  understand how within bounds is defined.*)
 let check_within_bounds_float_pair
     (float_pair_expected : (float * float) option)
     (float_pair_given : (float * float) option) : bool =
