@@ -1,3 +1,4 @@
+(** [mutex_helper world_state action] applies [action] to [world_state] *)
 let mutex_helper
     (world_state : Common.world_state)
     (action : Common.action) =
@@ -5,6 +6,8 @@ let mutex_helper
   world_state.user_command := action;
   Mutex.unlock world_state.mutex
 
+(** [key_checker world] checks if a key is pressed down and then applies
+    a specific action based on the key pressed to [world]. *)
 let key_checker (world_state : Common.world_state) =
   Sdlkey.enable_key_repeat ~delay:1 ~interval:1 ();
   while true do
@@ -30,5 +33,3 @@ let key_checker (world_state : Common.world_state) =
     | Sdlevent.KEYUP _ -> mutex_helper world_state Common.Nothing
     | _ -> ()
   done
-
-(*lock mutex and set action related to key pressed then unlock*)
