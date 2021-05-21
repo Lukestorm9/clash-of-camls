@@ -4,10 +4,11 @@
    You may not redistribute this assignment, distribute any derivatives,
    or use it for commercial purposes.
  ************************************************************)
- 
-(** CS 3110 Spring 2021 Assignment A2 Adventure
 
-    @authors Luke Murphy (ltm52), Luis Hoderlein (lrh74), Raj Rafalia (rrr236)*)
+(** CS 3110 Spring 2021 Assignment MS3: Release
+
+    @authors Luke Murphy (ltm52), Luis Hoderlein (lrh74), Raj Rafalia
+    (rrr236)*)
 
 (************************************************************ 
 

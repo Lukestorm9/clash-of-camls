@@ -87,6 +87,12 @@ type world_state = {
   mutex : Mutex.t;
 }
 
+type serv_state = {
+  data : entity option array;
+  points_gathered : int ref;
+  mutex : Mutex.t;
+}
+
 val array_filter : ('a -> bool) -> 'a option array -> 'a list
 
 val array_index_of : ('a -> bool) -> 'a option array -> int option

@@ -48,6 +48,12 @@ type world_state = {
   mutex : Mutex.t;
 }
 
+type serv_state = {
+  data : entity option array;
+  points_gathered : int ref;
+  mutex : Mutex.t;
+}
+
 (*[array_filter] finds the entities that satisfy a predicate and returns
   a list of those entities. Requires that the for the world_state be
   held at the time that this function is called. *)
