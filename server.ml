@@ -78,12 +78,23 @@ let do_action (state : Common.serv_state) uuid action =
 (** Load in some weapons, which are used all over the place. *)
 let weapons = Loader.load_weapons ()
 
+(** [find_weapon str] finds the loaded weapon associated with str. *)
 let find_weapon str : Common.weapon =
   List.find (fun (s : Common.weapon) -> s.name = str) weapons
 
-(* The connection loop for a particular user. Loops forever. Suffers an
-   exception when the user disconnects, which kill the thread. This
-   behavior is intentional. *)
+(** A weighted list of weapons to use for generating random weapons. *)
+let weighted_weapons =
+  [
+    find_weapon "fists";
+    find_weapon "sword";
+    find_weapon "fists";
+    find_weapon "sword";
+    find_weapon "fists";
+  ]
+
+(** [user_send_update_loop] The connection loop for a particular user.
+    Loops forever. Suffers an exception when the user disconnects, which
+    kill the thread. This behavior is intentional. *)
 let user_send_update_loop
     ((conn, state) : Unix.file_descr * Common.serv_state) =
   let send_chan = Unix.out_channel_of_descr conn in
@@ -94,20 +105,11 @@ let user_send_update_loop
   let angle = Random.float (2. *. 3.1415) in
   let x = 300. *. cos angle in
   let y = 300. *. sin angle in
-  let weapons =
-    [
-      find_weapon "fists";
-      find_weapon "sword";
-      find_weapon "fists";
-      find_weapon "sword";
-      find_weapon "fists";
-    ]
-  in
-  let weapon_idx = Random.int (List.length weapons) in
+  let weapon_idx = Random.int (List.length weighted_weapons) in
   let uuid =
     insert_entity state Player x y 0. 0. "character" 100.
       [
-        List.nth weapons weapon_idx;
+        List.nth weighted_weapons weapon_idx;
         find_weapon "sword";
         find_weapon "fists";
       ]
@@ -150,8 +152,8 @@ let user_send_update_loop
     close_in_noerr recv_chan;
     close_out_noerr send_chan
 
-(* Listen for new inbound connections, and spin them off onto new
-   threads. *)
+(** [network_loop port_state_pair] listens for new inbound connections
+    on [port], and spins them off onto new threads. *)
 let network_loop (port, state) =
   let sock = Unix.socket PF_INET SOCK_STREAM 0 in
   Unix.setsockopt sock SO_REUSEADDR true;
@@ -163,6 +165,8 @@ let network_loop (port, state) =
   done;
   ()
 
+(** [apply_physics_step e] applies the physics step to entity e, that is
+    move it according to it's velocity. *)
 let apply_physics_step (e : Common.entity) : Common.entity =
   let now = Unix.gettimeofday () in
   {
@@ -174,9 +178,10 @@ let apply_physics_step (e : Common.entity) : Common.entity =
     time_sent_over = now;
   }
 
-let respawn_player weapons (e : Common.entity) : Common.entity option =
+(** [respawn_player weapon e] respawns the player e with the weapon
+    weapon. *)
+let respawn_player weapon (e : Common.entity) : Common.entity option =
   let angle = Random.float (2. *. 3.1415) in
-  let weapon_idx = Random.int (List.length weapons) in
   Some
     {
       kind = Player;
@@ -190,11 +195,14 @@ let respawn_player weapons (e : Common.entity) : Common.entity option =
       health = 100.;
       max_health = 100.;
       last_direction_moved = false;
-      inventory = [ List.nth weapons weapon_idx ];
+      inventory = [ weapon ];
       points = max (e.points / 2) 0;
       last_attack_time = 0.;
     }
 
+(** [check_dead e] checks if the entity e is dead. If so, replaces it
+    with either a respawned entity in the case of a player, or None in
+    the case of an entity. *)
 let check_dead (e : Common.entity) =
   match e.kind with
   | Player ->
@@ -203,19 +211,14 @@ let check_dead (e : Common.entity) =
         print_endline
           ( "Player uuid = " ^ string_of_int e.uuid
           ^ " died with points = " ^ string_of_int e.points );
-        let weapons =
-          [
-            find_weapon "fists";
-            find_weapon "sword";
-            find_weapon "fists";
-            find_weapon "sword";
-            find_weapon "fists";
-          ]
-        in
-        respawn_player weapons e )
+        let weapon_idx = Random.int (List.length weighted_weapons) in
+        let weapon = List.nth weapons weapon_idx in
+        respawn_player weapon e )
   | _ -> if e.health > 0. then Some e else None
 
-(* Only do physics operations on objects which exist *)
+(** [tick_state state i e] ticks the state of the world, that is, it
+    applies the relevant AI step for an entity. Only do operations on
+    objects which exist (i.e. are not None) *)
 let tick_state (state : Common.serv_state) i (e : Common.entity option)
     =
   let res =
@@ -241,6 +244,8 @@ let enemies = Loader.load_enemies ()
 let find_enemy str : Loader.enemy =
   List.find (fun (s : Loader.enemy) -> s.name = str) enemies
 
+(** [entity_of_enemy enemy x y] turns the enemy prototype into an entity
+    with the required state at x,y. *)
 let entity_of_enemy (enemy : Loader.enemy) x y : Common.entity =
   {
     kind = Ai;
@@ -263,12 +268,10 @@ let entity_of_enemy (enemy : Loader.enemy) x y : Common.entity =
 let spawn_enemy_cluster (state : Common.serv_state) points =
   let choice = Random.int (List.length points) in
   let x, y = List.nth points choice in
-  let dromedarius_inf = find_enemy "dromedarius inferior" in
-  let dromedarius = find_enemy "dromedarius" in
-  let dromedarius_sup = find_enemy "dromedarius superior" in
-  let options =
-    [ dromedarius_inf; dromedarius; dromedarius; dromedarius_sup ]
-  in
+  let inf = find_enemy "dromedarius inferior" in
+  let normal = find_enemy "dromedarius" in
+  let sup = find_enemy "dromedarius superior" in
+  let options = [ inf; normal; normal; sup ] in
   let max = 2 + Random.int 3 in
   for i = 1 to max do
     match find_next_open state.data with
@@ -278,15 +281,11 @@ let spawn_enemy_cluster (state : Common.serv_state) points =
         let y = y +. Random.float 500. -. 250. in
         let entity = entity_of_enemy (List.nth options choice) x y in
         let entity = { entity with uuid } in
-        print_endline
-          ( "Creating enemy w/ uuid = " ^ string_of_int uuid ^ " at "
-          ^ string_of_float x ^ ", " ^ string_of_float y );
         state.data.(uuid) <- Some entity
     | None -> ()
   done;
   insert_entity state (Camel None) x y 0. 0. "camel" 10. [] (-10)
-  |> ignore;
-  ()
+  |> ignore
 
 (** [physics_loop point_state_pair] is the physics loop, which is
     running all the time in the background. Set to run at approx 20
@@ -298,23 +297,19 @@ let physics_loop
       (fun acc v -> if Option.is_some v then acc + 1 else acc)
       0 array
   in
-
   while true do
     Thread.delay 0.05;
 
     Mutex.lock state.mutex;
-
-    (* Do AI/Physics calculations*)
     Array.iteri (tick_state state) state.data;
 
-    (* Spawn enemies if needed*)
     if compute_capacity state.data < 150 then
       spawn_enemy_cluster state points;
 
     Mutex.unlock state.mutex
-  done;
-  ()
+  done
 
+(** [gen_spawn_points i] generates i spawn points to use. *)
 let rec gen_spawn_points i =
   if i <= 0 then []
   else

@@ -62,14 +62,9 @@ type serv_state = {
     that OCAML's array does not provide a filter operation by default:
     https://ocaml.org/api/Array.html *)
 let array_filter pred arr =
-  Array.fold_left
-    (fun acc t ->
-      match t with
-      | Some t -> if pred t then t :: acc else acc
-      | None -> acc)
-    [] arr
-
-(*Array.to_list arr |> List.filter_map Stdlib.Fun.id |> List.filter pred*)
+  Array.to_list arr
+  |> List.filter_map Stdlib.Fun.id
+  |> List.filter pred |> List.rev
 
 (** [array_index_of pred array] finds the first present element in an
     optional array that marches a predicate. While superficially similar
