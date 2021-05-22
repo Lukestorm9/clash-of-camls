@@ -1,3 +1,5 @@
+(** This module renders everything on screen. *)
+
 (** [run world map] takes in world state [world] and hashmap [map] and
     renders the world map and every entity in world along with its
     health, score, and inventory if its a player and its health if its
