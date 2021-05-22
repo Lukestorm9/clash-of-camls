@@ -1,11 +1,11 @@
-
-
-
+(** This module is mangaging world state on the client side and this
+    doing predictive smoothing.*)
 
 (**[get_local] find local entities x,y position in a radius of 250,000
-   pixel and applies location smoothing. Location smoothing takes the
-   calculated "local" entities and predicts where such entities will be
-   some time after it was received*)
+   pixel and applies location smoothing. [get_local] takes a world state
+   and the player's x and y position as floats. Location smoothing takes
+   the calculated "local" entities and predicts where such entities will
+   be some time after it was received*)
 val get_local :
   Common.world_state -> float -> float -> Common.entity list
 
