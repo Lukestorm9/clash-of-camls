@@ -54,6 +54,43 @@ let insert_entity
       print_endline "Failed to insert entity!";
       None
 
+(** Load in some weapons, which are used all over the place. *)
+let weapons = Loader.load_weapons ()
+
+(** [find_weapon str] finds the loaded weapon associated with str. *)
+let find_weapon str : Common.weapon =
+  List.find (fun (s : Common.weapon) -> s.name = str) weapons
+
+(** A weighted list of weapons to use for generating random weapons. *)
+let weighted_weapons =
+  [
+    find_weapon "fists";
+    find_weapon "sword";
+    find_weapon "fists";
+    find_weapon "sword";
+    find_weapon "fists";
+  ]
+
+(** [weapon_change_if e weapon_name cost] possibly adds the weapon_name
+    to the player inventory if the player can afford it. *)
+let weapon_change_if (e : Common.entity) weapon_name cost =
+  if e.points >= cost then
+    {
+      e with
+      inventory = find_weapon weapon_name :: e.inventory;
+      points = e.points - cost;
+    }
+  else e
+
+(** [do_buy e i] computes the result of player e attempting to buy
+    weapon i*)
+let do_buy (e : Common.entity) i =
+  match i with
+  | 0 -> weapon_change_if e "sword" 10
+  | 1 -> weapon_change_if e "sword" 20
+  | 2 -> weapon_change_if e "hand of judgement" 100
+  | _ -> e
+
 (** [do_action state uuid actions] has the player with uuid do the
     action specified. Requires the state mutex to be held *)
 let do_action (state : Common.serv_state) uuid action =
@@ -74,23 +111,6 @@ let do_action (state : Common.serv_state) uuid action =
     state.data.(idex) <- noveau
   in
   match idex with None -> () | Some i -> perform i
-
-(** Load in some weapons, which are used all over the place. *)
-let weapons = Loader.load_weapons ()
-
-(** [find_weapon str] finds the loaded weapon associated with str. *)
-let find_weapon str : Common.weapon =
-  List.find (fun (s : Common.weapon) -> s.name = str) weapons
-
-(** A weighted list of weapons to use for generating random weapons. *)
-let weighted_weapons =
-  [
-    find_weapon "fists";
-    find_weapon "sword";
-    find_weapon "fists";
-    find_weapon "sword";
-    find_weapon "fists";
-  ]
 
 (** [user_send_update_loop] The connection loop for a particular user.
     Loops forever. Suffers an exception when the user disconnects, which
