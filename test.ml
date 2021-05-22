@@ -19,7 +19,7 @@
 
 open OUnit2
 open World_manager
-open Server
+open Model
 
 (** [print_entity_type] prints the entity type*)
 let print_entity_type (kind : Common.entity_type) =
@@ -65,7 +65,8 @@ let print_entity (h : Common.entity) =
   ^ " }" ^ ";\n"
 
 (** [print_entity_list] prints the given entity_list. All information
-  about each entity will be printed. An entity is defined in Common.mli*)
+    about each entity will be printed. An entity is defined in
+    Common.mli*)
 let rec print_entity_list acc (entity_list : Common.entity list) =
   match entity_list with
   | [] -> "[\n" ^ acc ^ " ]"
@@ -80,8 +81,8 @@ let rec print_int_entity_list acc (pair : (int * Common.entity) list) =
         t
 
 (** [compare_indexes] compares that the indexes outputed are same
-  regarless of the order they are in expected or calculated. The sorting
-  process does not remove duplicate values. *)
+    regarless of the order they are in expected or calculated. The
+    sorting process does not remove duplicate values. *)
 let compare_indexes
     (expected_enemy_lst : (int * Common.entity) list)
     (calulated_enemy_lst : (int * Common.entity) list) =
@@ -93,35 +94,41 @@ let compare_indexes
   in
   exp_indices = cal_indices
 
-(** [print_float_pair_option] prints and float option pair. If the option
-  pair is some then it prints the float pair else if None then this
-  function prints the word "None"*)
+(** [print_float_pair_option] prints and float option pair. If the
+    option pair is some then it prints the float pair else if None then
+    this function prints the word "None"*)
 let print_float_pair_option (pair : (float * float) option) =
   match pair with
   | Some (s, t) ->
       "( " ^ string_of_float s ^ ", " ^ string_of_float t ^ " )"
   | None -> "None"
 
+let boundary_logic (cal : Common.entity) (exp : Common.entity) =
+  let boundary = 0.5 in
+  cal.x +. boundary >= exp.x
+  && cal.x -. boundary <= exp.x
+  && cal.y +. boundary >= exp.y
+  && cal.y -. boundary <= exp.y
+  && cal.last_attack_time +. boundary >= exp.last_attack_time
+  && cal.last_attack_time -. boundary <= exp.last_attack_time
+  && cal.points = exp.points
+
+let check_within_bounds exp cal : bool = boundary_logic cal exp
+
 (** [check_within_bounds_helper] is helper function for check_within
-  bounds.*)
-let rec check_within_bounds_helper
+    bounds.*)
+let rec check_within_bounds_list_helper
     (expected_world : Common.entity list)
-    (calculated_world : Common.entity list)
-    (boundary : float) : bool =
+    (calculated_world : Common.entity list) : bool =
   match (expected_world, calculated_world) with
   | [], [] -> true
   | exp :: t, cal :: m ->
-      if
-        cal.x +. boundary >= exp.x
-        && cal.x -. boundary <= exp.x
-        && cal.y +. boundary >= exp.y
-        && cal.y -. boundary <= exp.y
-      then check_within_bounds_helper t m boundary
+      if boundary_logic cal exp then check_within_bounds_list_helper t m
       else false
   | _ :: _, [] | [], _ :: _ -> false
 
 (** [check_within_bounds_float_pairs_helper] is helper function for
-  check_within_bounds_float_pairs.*)
+    check_within_bounds_float_pairs.*)
 let check_within_bounds_float_pair_helper
     (float_pair_expected : (float * float) option)
     (float_pair_given : (float * float) option)
@@ -140,8 +147,8 @@ let check_within_bounds_float_pair_helper
       else false
 
 (** [check_within_bounds_float_pair] checks if each float option pair is
-  within bounds. Check documentation for [check_within_bounds] to
-  understand how within bounds is defined.*)
+    within bounds. Check documentation for [check_within_bounds_list] to
+    understand how within bounds is defined.*)
 let check_within_bounds_float_pair
     (float_pair_expected : (float * float) option)
     (float_pair_given : (float * float) option) : bool =
@@ -149,22 +156,21 @@ let check_within_bounds_float_pair
   check_within_bounds_float_pair_helper float_pair_expected
     float_pair_given boundary
 
-(** [check_within_bounds] checks if the calculated_world's
-  (calculated_word is the original world passed to
-  World_manager.get_local) x,y pair is within a bounded number with
-  expected_world's x,y pair, and the functions does for all entites. The
-  bounds can be changed by changing bounded. Currently the bounded is
-  set to 0.5
-  *******************************************************************************
-  Ex with only one entity: expect_world's x,y: (0, 0) output_world's
-  x,y: (1, 0.5) -> check_within_bounds produces false because
-  output_world's 1 is out of bounds given a bounds of 0.5. The
-  acceptable bounds for x,y for -0.5 and +0.5 for this example.*)
-let rec check_within_bounds
+(** [check_within_bounds_list] checks if the calculated_world's
+    (calculated_word is the original world passed to
+    World_manager.get_local) x,y pair is within a bounded number with
+    expected_world's x,y pair, and the functions does for all entites.
+    The bounds can be changed by changing bounded. Currently the bounded
+    is set to 0.5
+    *******************************************************************************
+    Ex with only one entity: expect_world's x,y: (0, 0) output_world's
+    x,y: (1, 0.5) -> check_within_bounds_list produces false because
+    output_world's 1 is out of bounds given a bounds of 0.5. The
+    acceptable bounds for x,y for -0.5 and +0.5 for this example.*)
+let rec check_within_bounds_list
     (expected_world : Common.entity list)
     (calculated_world : Common.entity list) : bool =
-  let bounded = 0.5 in
-  check_within_bounds_helper expected_world calculated_world bounded
+  check_within_bounds_list_helper expected_world calculated_world
 
 (******************************************************************************
                           HELPER FUNCTIONS END                                    
@@ -179,7 +185,7 @@ let world_manager_get_local_tests
   name >:: fun _ ->
   assert_equal expected_output
     (World_manager.get_local state x y)
-    ~cmp:check_within_bounds ~printer:(print_entity_list "")
+    ~cmp:check_within_bounds_list ~printer:(print_entity_list "")
 
 let world_manager_get_player_xy_tests
     (name : string)
@@ -190,7 +196,7 @@ let world_manager_get_player_xy_tests
     (World_manager.get_player_xy state)
     ~cmp:check_within_bounds_float_pair ~printer:print_float_pair_option
 
-let server_get_local_enemies_tests
+let model_get_local_enemies_tests
     (name : string)
     state
     (entity : Common.entity)
@@ -202,6 +208,57 @@ let server_get_local_enemies_tests
     (Model.get_local_enemies state entity radius direction)
     ~cmp:compare_indexes
     ~printer:(print_int_entity_list "")
+
+let model_process_movement_tests
+    (name : string)
+    (entity : Common.entity)
+    (d : Common.direction)
+    (expected_output : Common.entity) : test =
+  name >:: fun _ ->
+  assert_equal expected_output
+    (Model.process_movement entity d)
+    ~printer:print_entity
+
+let model_process_attack_tests
+    (name : string)
+    (state : Common.serv_state)
+    (entity : Common.entity)
+    (d : Common.direction)
+    (expected_output : Common.entity) : test =
+  name >:: fun _ ->
+  assert_equal expected_output
+    (Model.process_attack state entity d)
+    ~cmp:check_within_bounds ~printer:print_entity
+
+let model_follow_tests
+    (name : string)
+    (state : Common.serv_state)
+    (entity : Common.entity)
+    (expected_output : Common.entity) : test =
+  name >:: fun _ ->
+  assert_equal expected_output
+    (Model.follow state entity)
+    ~printer:print_entity
+
+let model_try_acquire_imprint_tests
+    (name : string)
+    (state : Common.serv_state)
+    (entity : Common.entity)
+    (expected_output : Common.entity) : test =
+  name >:: fun _ ->
+  assert_equal expected_output
+    (Model.try_acquire_imprint state entity)
+    ~printer:print_entity
+
+let model_apply_enemy_step_tests
+    (name : string)
+    (state : Common.serv_state)
+    (entity : Common.entity)
+    (expected_output : Common.entity) : test =
+  name >:: fun _ ->
+  assert_equal expected_output
+    (Model.apply_enemy_step state entity)
+    ~printer:print_entity
 
 let world_state_maker ~data ~mutex ~uuid ~user_command :
     Common.world_state =
@@ -242,11 +299,25 @@ let entity_maker
     last_attack_time;
   }
 
+let (fist : Common.weapon) =
+  {
+    name = "fists";
+    range = sqrt 18100.;
+    damage = 20.0;
+    cooldown = 0.25;
+  }
+
 let non_moving_entity_at_origin =
-  entity_maker Common.Player 1 0. 0. 0. 0. 0. "camel" 0. false [] 0 0.
+  entity_maker Common.Player 1 0. 0. 0. 0. 0. "camel" 0. false [ fist ]
+    0 0.
+
+let non_moving_camel_at_origin =
+  entity_maker (Common.Camel (Some 1)) 1 0. 0. 0. 0. 0. "camel" 0. false
+    [ fist ] 0 0.
 
 let moving_entity_at_origin =
-  entity_maker Common.Player 2 0. 0. 5. 5. 1. "camel" 0. false [] 0 0.
+  entity_maker Common.Player 2 0. 0. 5. 5. 1. "camel" 0. false [ fist ]
+    0 0.
 
 let moving_entity_at_origin' =
   entity_maker Common.Player 0
@@ -256,7 +327,7 @@ let moving_entity_at_origin' =
 
 let entity_3 =
   entity_maker Common.Player 3 (-100.) 90. 5. 5. 1. "camel" 0. false []
-    0 0.
+    10 0.
 
 let entity_3' =
   entity_maker Common.Player 3
@@ -265,40 +336,44 @@ let entity_3' =
     5. 5. 1. "camel" 0. false [] 0 0.
 
 let entity_4 =
-  entity_maker Common.Player 4 0. 3. 5. 5. 1. "camel" 0. true [] 0 0.
+  entity_maker Common.Player 4 0. 3. 5. 5. 1. "camel" 0. true [ fist ] 0
+    0.
 
 let entity_5_center =
-  entity_maker Common.Player 5 10. (-2.) 5. 5. 1. "camel" 0. true [] 0
-    0.
+  entity_maker Common.Player 5 10. (-2.) 5. 5. 1. "camel" 0. true
+    [ fist ] 0 0.
 
 let entity_6_down =
-  entity_maker Common.Player 6 12. (-5.) 5. 5. 1. "camel" 0. true [] 0
-    0.
+  entity_maker Common.Player 6 12. (-5.) 5. 5. 1. "camel" 0. true
+    [ fist ] 10 0.
 
 let entity_6_down' =
-  entity_maker Common.Player 6 (-5.) (-20.) 5. 5. 1. "camel" 0. true []
-    0 0.
+  entity_maker Common.Player 6 (-5.) (-20.) 5. 5. 1. "camel" 0. true
+    [ fist ] 20 0.
 
 let entity_7_right =
-  entity_maker Common.Player 7 40. (-10.) 5. 5. 1. "camel" 0. true [] 0
-    0.
+  entity_maker Common.Player 7 40. (-10.) 5. 5. 1. "camel" 0. true
+    [ fist ] 20 0.
 
 let entity_7_right' =
-  entity_maker Common.Player 7 60. 20. 5. 5. 1. "camel" 0. true [] 0 0.
+  entity_maker Common.Player 7 60. 20. 5. 5. 1. "camel" 0. true [ fist ]
+    30 0.
 
 let entity_8_up =
-  entity_maker Common.Player 8 8. 4. 5. 5. 1. "camel" 0. true [] 0 0.
+  entity_maker Common.Player 8 8. 4. 5. 5. 1. "camel" 0. true [ fist ]
+    30 0.
 
 let entity_8_up' =
-  entity_maker Common.Player 8 (-20.) 30. 5. 5. 1. "camel" 0. true [] 0
-    0.
+  entity_maker Common.Player 8 (-20.) 30. 5. 5. 1. "camel" 0. true
+    [ fist ] 40 0.
 
 let entity_9_left =
-  entity_maker Common.Player 9 (-11.) (-10.) 5. 5. 1. "camel" 0. true []
-    0 0.
+  entity_maker Common.Player 9 (-11.) (-10.) 5. 5. 1. "camel" 0. true
+    [ fist ] 40 0.
 
 let entity_9_left' =
-  entity_maker Common.Player 9 5. 1. 5. 5. 1. "camel" 0. true [] 0 0.
+  entity_maker Common.Player 9 5. 1. 5. 5. 1. "camel" 0. true [ fist ]
+    50 0.
 
 let empty_world =
   world_state_maker [||] (Mutex.create ()) (ref (Some 0))
@@ -351,7 +426,11 @@ let empty_world_server =
 
 let world_1_server =
   world_state_maker_server
-    [| Some non_moving_entity_at_origin; Some entity_3 |]
+    [|
+      Some non_moving_entity_at_origin;
+      Some entity_3;
+      Some non_moving_camel_at_origin;
+    |]
     (ref 3) (Mutex.create ())
 
 let world_2_server =
@@ -417,12 +496,12 @@ let world_manager_tests =
       entities, however the moving entity should be changed to where it
       is predicated to be (i.e. it should apply get_local's location
       smoothing)*)
-    ( Thread.delay (1. /. 4.);
-      world_manager_get_local_tests
-        "Using world_1 with (0,0) | Expect all two entities: one \
-         non-moving and one moving"
-        world_1 0. 0.
-        [ non_moving_entity_at_origin; moving_entity_at_origin' ] );
+    (Thread.delay (1. /. 4.);
+     world_manager_get_local_tests
+       "Using world_1 with (0,0) | Expect all two entities: one \
+        non-moving and one moving"
+       world_1 0. 0.
+       [ non_moving_entity_at_origin; moving_entity_at_origin' ]);
     (*see if it returns "None" when uuid is not found in the given zero
       entities*)
     world_manager_get_player_xy_tests
@@ -452,92 +531,180 @@ let world_manager_tests =
       (Some (entity_3'.x, entity_3'.y));
   ]
 
-let server_tests =
+let model_tests =
   [
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find an enemy on an empty with radius 1."
       empty_world_server non_moving_entity_at_origin 1. Up [];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find an enemy on world_2_server | r= 0, entity= \
        non_moving-entity_at_orgin"
       world_2_server non_moving_entity_at_origin 0. Up [];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find an enemy on world_2_server | r= 100.0, entity= \
        entity_3"
       world_2_server entity_3 100.0 Up [];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_2_server | r=boundary_point_2 - \
        0.001, entity= entity_3"
       world_2_server entity_3
       (boundary_point_2 -. 0.001)
       Up [];
     (*Testing that Left works*)
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_1_server | r=boundary_point_2, \
        entity= non_moving_entity_at_origin, d = Up"
       world_1_server non_moving_entity_at_origin boundary_point_2 Up [];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_1_server | r=boundary_point_2, \
        entity= non_moving_entity_at_origin, d = Right"
       world_1_server non_moving_entity_at_origin boundary_point_2 Down
       [];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_1_server | r=boundary_point_2, \
        entity= non_moving_entity_at_origin, d = Down"
       world_1_server non_moving_entity_at_origin boundary_point_2 Right
       [];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_1_server | r=boundary_point_2, \
        entity= non_moving_entity_at_origin, d = Left"
       world_1_server non_moving_entity_at_origin boundary_point_2 Left
       [ (1, entity_3) ];
     (*Testing that Up works*)
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_3_server | r=boundary_point_2, \
        entity= non_moving_entity_at_origin, d = Up"
       world_3_server non_moving_entity_at_origin boundary_point_2 Up
       [ (2, entity_4) ];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_3_server | r=boundary_point_2, \
        entity= non_moving_entity_at_origin, d = Down"
       world_3_server non_moving_entity_at_origin boundary_point_2 Down
       [];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_3_server | r=boundary_point_2, \
        entity= non_moving_entity_at_origin, d = Right"
       world_3_server non_moving_entity_at_origin boundary_point_2 Right
       [];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_3_server | r=boundary_point_2, \
        entity= non_moving_entity_at_origin, d = Left"
       world_3_server non_moving_entity_at_origin boundary_point_2 Left
       [ (1, entity_3) ];
     (*Testing get_local_enemies with center not origin*)
     (*Testing that Up works*)
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_4_server | r=boundary_point_2, \
        entity= entity_5_center, d = Up"
       world_4_server entity_5_center boundary_point_2 Up
       [ (7, entity_8_up'); (3, entity_8_up) ];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_4_server | r=boundary_point_2, \
        entity= entity_5_center, d = Down"
       world_4_server entity_5_center boundary_point_2 Down
       [ (5, entity_6_down'); (1, entity_6_down) ];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_4_server | r=boundary_point_2, \
-       entity= entity_5_center, d = Down"
+       entity= entity_5_center, d = Right"
       world_4_server entity_5_center boundary_point_2 Right
       [ (6, entity_7_right'); (2, entity_7_right) ];
-    server_get_local_enemies_tests
+    model_get_local_enemies_tests
       "Trying to find enemies on world_4_server | r=boundary_point_2, \
-       entity= entity_5_center, d = Down"
+       entity= entity_5_center, d = Left"
       world_4_server entity_5_center boundary_point_2 Left
       [ (8, entity_9_left'); (4, entity_9_left) ];
+    model_process_movement_tests
+      "Process movement on non_moving_entity_at_origin with Common.Left"
+      non_moving_entity_at_origin Common.Left
+      {
+        non_moving_entity_at_origin with
+        vx = 300.;
+        last_direction_moved = false;
+      };
+    model_process_movement_tests
+      "Process movement on non_moving_entity_at_origin with \
+       Common.Right"
+      non_moving_entity_at_origin Common.Right
+      {
+        non_moving_entity_at_origin with
+        vx = -300.;
+        last_direction_moved = true;
+      };
+    model_process_movement_tests
+      "Process movement on non_moving_entity_at_origin with Common.Up"
+      non_moving_entity_at_origin Common.Up
+      { non_moving_entity_at_origin with vy = -300. };
+    model_process_movement_tests
+      "Process movement on non_moving_entity_at_origin with Common.Down"
+      non_moving_entity_at_origin Common.Down
+      { non_moving_entity_at_origin with vy = 300. };
+    model_process_attack_tests
+      "Process attack with  empty_world_server \
+       non_moving_entity_at_origin 1. Up"
+      empty_world_server non_moving_entity_at_origin Up
+      {
+        non_moving_entity_at_origin with
+        last_attack_time = Unix.gettimeofday ();
+      };
+    model_process_attack_tests
+      "Process attack with world_3_server, entity= \
+       non_moving_entity_at_origin, d = Left"
+      world_3_server non_moving_entity_at_origin Left
+      {
+        non_moving_entity_at_origin with
+        points = 10;
+        last_attack_time = Unix.gettimeofday ();
+      };
+    model_process_attack_tests
+      "Process attack with enemies on world_4_server, entity= \
+       entity_5_center, d = Up"
+      world_4_server entity_5_center Up
+      {
+        entity_5_center with
+        points = 70;
+        last_attack_time = Unix.gettimeofday ();
+      };
+    model_process_attack_tests
+      "Process attack with enemies on world_4_server, entity= \
+       entity_5_center, d = Down"
+      world_4_server entity_5_center Down
+      {
+        entity_5_center with
+        points = 30;
+        last_attack_time = Unix.gettimeofday ();
+      };
+    model_process_attack_tests
+      "Process attack with enemies on world_4_server, entity= \
+       entity_5_center, d = Right"
+      world_4_server entity_5_center Right
+      {
+        entity_5_center with
+        points = 50;
+        last_attack_time = Unix.gettimeofday ();
+      };
+    model_process_attack_tests
+      "Process attack with enemies on world_4_server, entity= \
+       entity_5_center, d = Left"
+      world_4_server entity_5_center Left
+      {
+        entity_5_center with
+        points = 90;
+        last_attack_time = Unix.gettimeofday ();
+      };
+    model_follow_tests "Follow on empty_world_server" empty_world_server
+      non_moving_entity_at_origin non_moving_entity_at_origin;
+    model_follow_tests
+      "Follow on world_1_server with non_moving_entity_at_origin"
+      world_1_server non_moving_entity_at_origin
+      non_moving_entity_at_origin;
+    model_follow_tests
+      "Follow on world_1_server with non_moving_camel_at_origin"
+      world_1_server non_moving_camel_at_origin
+      non_moving_camel_at_origin;
   ]
 
 let suite =
   "test suite for Clash of Camels"
-  >::: List.flatten [ world_manager_tests; server_tests ]
+  >::: List.flatten [ world_manager_tests; model_tests ]
 
 let _ = run_test_tt_main suite
