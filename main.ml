@@ -8,7 +8,7 @@ let create_hash () =
   |> ignore;
   image_hash
 
-(*[remote_config] configures remote connection for the client. It checks
+(** [remote_config] configures remote connection for the client. It checks
   if the number of arguments are correct.*)
 let remote_config number_of_args arguments =
   try
@@ -27,7 +27,7 @@ let remote_config number_of_args arguments =
       | None -> print_endline "Not valid server address"
   with Failure _ -> print_endline "Unable to parse input"
 
-(*[local_config] configures local connection for the client. Client will
+(** [local_config] configures local connection for the client. Client will
   start at "0.0.0.0". You must provide a port. It checks if the number
   of arguments are correct.*)
 let local_config number_of_args arguments =
@@ -48,7 +48,7 @@ let local_config number_of_args arguments =
       | None -> print_endline "Not valid server address"
   with Failure _ -> print_endline "Unable to parse input"
 
-(*[main] parses command line arguments and executes the right commands.
+(** [main] parses command line arguments and executes the right commands.
   You can make either a local configuration or remote configuration. The
   local configuration is for single player, and the remote configuration
   is multi-player. RI: The first argument must be CMD. The second

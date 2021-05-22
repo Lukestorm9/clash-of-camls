@@ -11,8 +11,8 @@ type enemy = {
   weapon : Common.weapon;
 }
 
-(**[load_enemies] loads enemy types from enemies.json*)
+(** [load_enemies] loads enemy types from enemies.json*)
 val load_enemies : unit -> enemy list
 
-(**[load_enemies] loads enemy types from weapons.json*)
+(** [load_enemies] loads enemy types from weapons.json*)
 val load_weapons : unit -> Common.weapon list
