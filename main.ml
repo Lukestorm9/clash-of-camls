@@ -59,12 +59,17 @@ let local_config number_of_args arguments =
   <port>" (2) make play CMD="remote <client> <port>"*)
 let main () =
   let number_of_args = Array.length Sys.argv in
-  match Sys.argv.(1) with
-  | "remote" -> remote_config number_of_args Sys.argv
-  | "local" -> local_config number_of_args Sys.argv
-  | _ ->
-      print_endline
-        "Malformed arugment; first argument is neither 'local' or \
-         'remote'"
+  if number_of_args == 1 || number_of_args > 4 then
+    print_endline
+      "Please run with either `make play CMD=\"local <port>\"` or \
+       `make play CMD=\"remote <ip addr> <port>\"`"
+  else
+    match Sys.argv.(1) with
+    | "remote" -> remote_config number_of_args Sys.argv
+    | "local" -> local_config number_of_args Sys.argv
+    | _ ->
+        print_endline
+          "Malformed arugment; first argument is neither 'local' or \
+           'remote'"
 
 let _ = main ()
