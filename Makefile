@@ -1,4 +1,4 @@
-MODULES=main common client server world_manager input_handler
+MODULES=main common client server world_manager input_handler author model
 OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)
@@ -6,7 +6,7 @@ TEST=test.byte
 MAIN=main.byte
 SERVER=server.byte
 OCAMLBUILD=ocamlbuild -use-ocamlfind
-PKGS=ounit2,sdl,bigarray,sdl.sdlimage,sdl.sdlttf,sdl.sdlmixer,yojson,unix
+PKGS=ounit2,sdl,bigarray,sdl.sdlimage,sdl.sdlttf,sdl.sdlmixer,yojson
 
 default: build
 	OCAMLRUNPARAM=b utop

@@ -1,5 +1,6 @@
-(* Tries to open a connection to a socket listening at addr:port.
-   Returns Some(sock) if successful, None otherwise. *)
+(** [try_sock_connect addr port] tries to open a connection to a socket
+    listening at addr:port. Returns Some(sock) if successful, None
+    otherwise. *)
 let try_sock_connect addr port =
   let sock = Unix.socket PF_INET SOCK_STREAM 0 in
   let sock_addr =
@@ -10,8 +11,8 @@ let try_sock_connect addr port =
     Some sock
   with _ -> None
 
-(* [nowify e] updates the time sent over of an entity option [e] to the
-   current Unix time if that entity option is Some e*)
+(** [nowify e] updates the time sent over of an entity option [e] to the
+    current Unix time if that entity option is Some e*)
 let nowify (e : Common.entity option) =
   match e with
   | None -> None
@@ -19,14 +20,17 @@ let nowify (e : Common.entity option) =
       let now = Unix.gettimeofday () in
       Some { e with time_sent_over = now }
 
+(** [adjust_last_attack_time delta e] optionally adjusts the last attack
+    time of an entity. This is to adjust for wierd unix time issues of
+    different computers. *)
 let adjust_last_attack_time delta (e : Common.entity option) =
   match e with
   | None -> None
   | Some e ->
       Some { e with last_attack_time = e.last_attack_time +. delta }
 
-(* Client update loop. Pulls data from the server, and sticks it in the
-   shared mutable state. *)
+(** [client_loop sock_state_pair] is the client update loop. It pulls
+    data from the server, and sticks it in the shared mutable state. *)
 let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
   let recv_chan = Unix.in_channel_of_descr sock in
   let send_chan = Unix.out_channel_of_descr sock in
@@ -67,8 +71,9 @@ let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
     done
   with _ -> print_endline "Connection to server lost"
 
-(* This initializes the shared state, and then spins up the new thread
-   for the client to be on. *)
+(** [start addr port] initializes the shared state, and then spins up
+    the new thread for the client to be on. Attempts to connect a bunch
+    of times to deal with a wierd connection bug. *)
 let start addr port =
   let state : Common.world_state =
     {
