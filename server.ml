@@ -1,4 +1,10 @@
-(* Find the next open slot in the array *)
+(** [find_next_open array] finds the uuid corresponding to the next open
+    (None) slot in the state array, and then returns that uuid. While
+    superficially similar to List find this function by necessity
+    returns an index for the purpose of state manipulation.. Note that
+    OCAML's arrays and lists do not provide equivalent functionality by
+    default: https://ocaml.org/api/Array.html
+    https://ocaml.org/api/List.html . *)
 let find_next_open array =
   let filter (acc, i) v =
     match acc with
@@ -7,9 +13,9 @@ let find_next_open array =
   in
   Array.fold_left filter (None, 0) array |> fst
 
-(* Construct a new entity with the desired qualities, then insert it
-   into the world state. Requires the state mutex to be locked on the
-   current thread BEFORE this method is called.*)
+(** [insert_entity] constructs a new entity with the desired qualities,
+    then insert it into the world state. Requires the state mutex to be
+    locked on the current thread BEFORE this method is called.*)
 let insert_entity
     (state : Common.serv_state)
     kind
@@ -48,7 +54,8 @@ let insert_entity
       print_endline "Failed to insert entity!";
       None
 
-(* Requires the mutex to be held*)
+(** [do_action state uuid actions] has the player with uuid do the
+    action specified. Requires the state mutex to be held *)
 let do_action (state : Common.serv_state) uuid action =
   let idex =
     Common.array_index_of
@@ -67,19 +74,11 @@ let do_action (state : Common.serv_state) uuid action =
   in
   match idex with None -> () | Some i -> perform i
 
+(** Load in some weapons, which are used all over the place. *)
 let weapons = Loader.load_weapons ()
 
-let into_weapon (w : Loader.weapon) : Common.weapon =
-  {
-    name = w.name;
-    range = w.range;
-    damage = w.damage;
-    cooldown = w.cooldown;
-  }
-
 let find_weapon str : Common.weapon =
-  List.find (fun (s : Loader.weapon) -> s.name = str) weapons
-  |> into_weapon
+  List.find (fun (s : Common.weapon) -> s.name = str) weapons
 
 (* The connection loop for a particular user. Loops forever. Suffers an
    exception when the user disconnects, which kill the thread. This
@@ -250,7 +249,7 @@ let entity_of_enemy (enemy : Loader.enemy) x y : Common.entity =
     max_health = enemy.health;
     graphic = enemy.graphic;
     last_direction_moved = Random.bool ();
-    inventory = [ enemy.weapon |> into_weapon ];
+    inventory = [ enemy.weapon ];
     last_attack_time = 0.;
     time_sent_over = Unix.gettimeofday ();
     points = enemy.points;

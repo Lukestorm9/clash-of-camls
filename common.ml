@@ -54,17 +54,24 @@ type serv_state = {
   mutex : Mutex.t;
 }
 
-(*[array_filter] finds the entities that satisfy a predicate and returns
-  a list of those entities. Requires that the for the world_state be
-  held at the time that this function is called. *)
+(** [array_filter pred arr] finds the entities that satisfy a predicate
+    and returns a list of those entities. Requires that that the array
+    not change during the optionation, i.e. that any mutex for the
+    world_state be held at the time that this function is called. Note
+    that OCAML's array does not provide a filter operation by default:
+    https://ocaml.org/api/Array.html *)
 let array_filter pred arr =
-  Array.fold_left
-    (fun acc t ->
-      match t with
-      | Some t -> if pred t then t :: acc else acc
-      | None -> acc)
-    [] arr
+  let map v =
+    Option.bind v (fun v -> if pred v then Some v else None)
+  in
+  Array.to_list arr |> List.filter_map map
 
+(** [array_index_of pred array] finds the first present element in an
+    optional array that marches a predicate. While superficially similar
+    to List find this function by necessity returns an index for the
+    purpose of state manipulation. Note that OCAML's arrays and lists do
+    not provide equivalent functionality by default:
+    https://ocaml.org/api/Array.html https://ocaml.org/api/List.html . *)
 let array_index_of pred arr =
   let idex = ref None in
   Array.iteri

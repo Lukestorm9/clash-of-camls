@@ -1,25 +1,14 @@
-(**Enemey.json: parse a list enemey list Enemy: -Health -Graphic -Points
-   value -Weapon_name: weapon Weapons.json: parse as a list of weapons
-
-   parse_weapon: use for weapon_name & weapons.json *)
 open Yojson.Basic.Util
-
-type weapon = {
-  name : string;
-  range : float;
-  damage : float;
-  cooldown : float;
-}
 
 type enemy = {
   name : string;
   health : float;
   graphic : string;
   points : int;
-  weapon : weapon;
+  weapon : Common.weapon;
 }
 
-let weapon_of_json w =
+let weapon_of_json w : Common.weapon =
   {
     name = w |> member "name" |> to_string;
     range = w |> member "range" |> to_float;
