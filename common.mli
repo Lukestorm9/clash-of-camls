@@ -67,6 +67,7 @@ type action =
   | Nothing
   | Move of direction
   | Attack of direction
+  | Buy of int
 
 (** [world_state] represents the world state as the client, NOT the
     server, understands it. Before accessing any of the data-bearing

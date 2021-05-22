@@ -40,6 +40,7 @@ type action =
   | Nothing
   | Move of direction
   | Attack of direction
+  | Buy of int
 
 type world_state = {
   data : entity option array;
