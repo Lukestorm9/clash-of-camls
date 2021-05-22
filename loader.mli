@@ -1,4 +1,5 @@
-(** *)
+(** This module is responsible for the loading of any serverside
+    definitions. This includes weapon types, enemies, etc. *)
 
 (** A prototype for an enemy, and for this reason NOT equivalent to a
     common entity *)

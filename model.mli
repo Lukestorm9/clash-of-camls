@@ -1,4 +1,4 @@
-(** This module represents any serverside model calculations, i.e. world
+(** This module represents any serverside model calculations. I.e. world
     state updates. This includes AI, attack calculations, etc.*)
 
 (** [get_local_enemies state entity radius direction] computes the

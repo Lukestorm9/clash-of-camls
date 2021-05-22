@@ -1,5 +1,5 @@
-(** Contains a lot of common definitions. These type definitions are
-    exposed in common.mli so that other files, which need to access
+(** Contains common type/function definitions. These type definitions
+    are exposed in common.mli so that other files, which need to access
     these internals can do so. In order for the code to compile, they
     have to be repeated in common.ml, otherwise we would not give them
     there.*)
