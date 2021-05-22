@@ -5,7 +5,7 @@
     testing. [Render], [Client], and parts of [Client] are te test
     manually as there is good way to test the functions those modules.
     [World Manager] has functions that well-suited for testing using the
-    OUnit suite, thus it was not manually tested.
+    OUnit suite, thus it was not manually tested.e
 
     2. Modules were tested by OUnit and how test cases were developed
     (black box, glass box, randomized, etc.): The tests for
