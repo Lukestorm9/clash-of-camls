@@ -69,6 +69,7 @@ let do_action (state : Common.serv_state) uuid action =
       | Common.Move d -> Some (Model.process_movement e d)
       | Common.Attack d -> Some (Model.process_attack state e d)
       | Common.Nothing -> Some { e with vx = 0.; vy = 0. }
+      | Common.Buy _ -> Some e
     in
     state.data.(idex) <- noveau
   in
@@ -173,6 +174,27 @@ let apply_physics_step (e : Common.entity) : Common.entity =
     time_sent_over = now;
   }
 
+let respawn_player weapons (e : Common.entity) : Common.entity option =
+  let angle = Random.float (2. *. 3.1415) in
+  let weapon_idx = Random.int (List.length weapons) in
+  Some
+    {
+      kind = Player;
+      uuid = e.uuid;
+      x = 100. *. cos angle;
+      y = 100. *. sin angle;
+      vx = 0.;
+      vy = 0.;
+      time_sent_over = Unix.gettimeofday ();
+      graphic = e.graphic;
+      health = 100.;
+      max_health = 100.;
+      last_direction_moved = false;
+      inventory = [ List.nth weapons weapon_idx ];
+      points = max (e.points / 2) 0;
+      last_attack_time = 0.;
+    }
+
 let check_dead (e : Common.entity) =
   match e.kind with
   | Player ->
@@ -181,7 +203,6 @@ let check_dead (e : Common.entity) =
         print_endline
           ( "Player uuid = " ^ string_of_int e.uuid
           ^ " died with points = " ^ string_of_int e.points );
-        let angle = Random.float (2. *. 3.1415) in
         let weapons =
           [
             find_weapon "fists";
@@ -191,24 +212,7 @@ let check_dead (e : Common.entity) =
             find_weapon "fists";
           ]
         in
-        let weapon_idx = Random.int (List.length weapons) in
-        Some
-          {
-            kind = Player;
-            uuid = e.uuid;
-            x = 100. *. cos angle;
-            y = 100. *. sin angle;
-            vx = 0.;
-            vy = 0.;
-            time_sent_over = Unix.gettimeofday ();
-            graphic = e.graphic;
-            health = 100.;
-            max_health = 100.;
-            last_direction_moved = false;
-            inventory = [ List.nth weapons weapon_idx ];
-            points = max (e.points / 2) 0;
-            last_attack_time = 0.;
-          } )
+        respawn_player weapons e )
   | _ -> if e.health > 0. then Some e else None
 
 (* Only do physics operations on objects which exist *)
@@ -255,6 +259,7 @@ let entity_of_enemy (enemy : Loader.enemy) x y : Common.entity =
     points = enemy.points;
   }
 
+(** [spawn_enemy_cluster state points] spawns an enemy cluster *)
 let spawn_enemy_cluster (state : Common.serv_state) points =
   let choice = Random.int (List.length points) in
   let x, y = List.nth points choice in
@@ -283,8 +288,9 @@ let spawn_enemy_cluster (state : Common.serv_state) points =
   |> ignore;
   ()
 
-(* The physics loop, which is running all the time in the background.
-   Set to run at approx 20 ticks per second. TODO: make time exact. *)
+(** [physics_loop point_state_pair] is the physics loop, which is
+    running all the time in the background. Set to run at approx 20
+    ticks per second. TODO: make time exact. *)
 let physics_loop
     ((points, state) : (float * float) list * Common.serv_state) =
   let compute_capacity array =
@@ -330,9 +336,10 @@ let start port =
       points_gathered = ref 0;
     }
   in
-  insert_entity state Physik (-450.) 10. 0. 0. "trailer" 100. [] (-10)
+  insert_entity state (Camel (Some 1)) (-450.) 10. 0. 0. "trailer" 100.
+    [] (-10)
   |> ignore;
-  insert_entity state Physik (-460.) 140. 0. 0. "trader" 100. [] (-10)
+  insert_entity state Merchant (-460.) 140. 0. 0. "trader" 100. [] (-10)
   |> ignore;
   insert_entity state Physik (-100.) 0. 0. 0. "golden_camel" 100. []
     (-10)
