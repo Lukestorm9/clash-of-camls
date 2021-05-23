@@ -23,9 +23,16 @@ open Model
 
 (** [print_entity_type] prints the entity type*)
 let print_entity_type (kind : Common.entity_type) =
-  if kind = Physik then "Physik"
-  else if kind = Ai then "Ai"
-  else "Player"
+  match kind with
+  | Physik -> "Physik"
+  | Ai -> "Ai"
+  | Player -> "Player"
+  | Merchant -> "Mercant"
+  | Camel (Some i) -> "Camel of int " ^ string_of_int i
+  | _ ->
+      failwith
+        "Not possible Kind. Please check Commmon.ml for updates to \
+         entity_type."
 
 (** [print_weapons] prints the weapon list*)
 let rec print_weapons (weapons_list : Common.weapon list) acc =
@@ -111,6 +118,13 @@ let boundary_logic (cal : Common.entity) (exp : Common.entity) =
   && cal.y -. boundary <= exp.y
   && cal.last_attack_time +. boundary >= exp.last_attack_time
   && cal.last_attack_time -. boundary <= exp.last_attack_time
+  && cal.kind = cal.kind && cal.uuid = exp.uuid
+  && cal.time_sent_over = exp.time_sent_over
+  && cal.max_health = exp.max_health
+  && cal.health = exp.health
+  && cal.last_direction_moved = exp.last_direction_moved
+  && cal.graphic = exp.graphic
+  && cal.inventory = exp.inventory
   && cal.points = exp.points
 
 let check_within_bounds exp cal : bool = boundary_logic cal exp
@@ -258,7 +272,7 @@ let model_apply_enemy_step_tests
   name >:: fun _ ->
   assert_equal expected_output
     (Model.apply_enemy_step state entity)
-    ~printer:print_entity
+    ~cmp:check_within_bounds ~printer:print_entity
 
 let world_state_maker ~data ~mutex ~uuid ~user_command :
     Common.world_state =
@@ -312,28 +326,32 @@ let non_moving_entity_at_origin =
     0 0.
 
 let non_moving_camel_at_origin =
-  entity_maker (Common.Camel (Some 1)) 1 0. 0. 0. 0. 0. "camel" 0. false
+  entity_maker (Common.Camel (Some 0)) 1 0. 0. 0. 0. 0. "camel" 0. false
     [ fist ] 0 0.
 
 let moving_entity_at_origin =
   entity_maker Common.Player 2 0. 0. 5. 5. 1. "camel" 0. false [ fist ]
     0 0.
 
+let moving_camel_near_entity_3 =
+  entity_maker (Common.Camel (Some 1)) 2 (-100.) 91. 5. 5. 1. "camel" 0.
+    false [ fist ] 0 0.
+
 let moving_entity_at_origin' =
-  entity_maker Common.Player 0
+  entity_maker Common.Player 2
     (0. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
     (0. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
-    5. 5. 1. "camel" 0. false [] 0 0.
+    5. 5. 1. "camel" 0. false [ fist ] 0 0.
 
 let entity_3 =
-  entity_maker Common.Player 3 (-100.) 90. 5. 5. 1. "camel" 0. false []
-    10 0.
+  entity_maker Common.Player 3 (-100.) 90. 5. 5. 1. "camel" 0. false
+    [ fist ] 10 0.
 
 let entity_3' =
   entity_maker Common.Player 3
     (-100. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
     (90. +. (5. *. (Unix.gettimeofday () +. (1. /. 4.) -. 1.)))
-    5. 5. 1. "camel" 0. false [] 0 0.
+    5. 5. 1. "camel" 0. false [ fist ] 0 0.
 
 let entity_4 =
   entity_maker Common.Player 4 0. 3. 5. 5. 1. "camel" 0. true [ fist ] 0
@@ -430,6 +448,7 @@ let world_1_server =
       Some non_moving_entity_at_origin;
       Some entity_3;
       Some non_moving_camel_at_origin;
+      Some moving_camel_near_entity_3;
     |]
     (ref 3) (Mutex.create ())
 
@@ -701,6 +720,69 @@ let model_tests =
       "Follow on world_1_server with non_moving_camel_at_origin"
       world_1_server non_moving_camel_at_origin
       non_moving_camel_at_origin;
+    model_follow_tests
+      "Follow on world_1_server with moving_camel_near_entity_3"
+      world_1_server moving_camel_near_entity_3
+      { moving_camel_near_entity_3 with vx = 0.; vy = 0. };
+    model_try_acquire_imprint_tests
+      "Try to acquire imprint on empty_world_server and entity = \
+       non_moving_camel_at_origin (a camel)"
+      empty_world_server non_moving_camel_at_origin
+      non_moving_camel_at_origin;
+    model_try_acquire_imprint_tests
+      "Try to acquire imprint on world_1_server and entity = \
+       non_moving_camel_at_origin (a camel)"
+      world_1_server non_moving_camel_at_origin
+      non_moving_camel_at_origin;
+    model_try_acquire_imprint_tests
+      "Try to acquire imprint on world_1_server and entity =  \
+       moving_camel_near_entity_3"
+      world_1_server moving_camel_near_entity_3
+      moving_camel_near_entity_3;
+    model_apply_enemy_step_tests
+      "Apply enemey step on world_1_server with \
+       non_moving_camel_at_origin "
+      world_1_server non_moving_camel_at_origin
+      {
+        non_moving_camel_at_origin with
+        last_attack_time = Unix.gettimeofday ();
+      };
+    model_apply_enemy_step_tests
+      "Apply enemey step on world_1_server with moving_entity_at_origin"
+      world_1_server moving_entity_at_origin
+      {
+        moving_entity_at_origin with
+        vx = 0.;
+        vy = 0.;
+        last_attack_time = Unix.gettimeofday ();
+      };
+    model_apply_enemy_step_tests
+      "Apply enemey step on world_1_server with entity_3" world_1_server
+      entity_3
+      {
+        entity_3 with
+        vx = 37.4437999357;
+        vy = -33.6994199422;
+        last_attack_time = Unix.gettimeofday ();
+      };
+    model_apply_enemy_step_tests
+      "Apply enemey step on world_1_server with \
+       moving_camel_near_entity_3"
+      world_1_server moving_camel_near_entity_3
+      {
+        moving_camel_near_entity_3 with
+        vx = 37.4437999357;
+        vy = -33.6994199422;
+        last_attack_time = Unix.gettimeofday ();
+      };
+    model_apply_enemy_step_tests
+      "Apply enemey step on world_4_server with \
+       moving_camel_near_entity_3"
+      world_4_server entity_5_center
+      {
+        entity_5_center with
+        last_attack_time = Unix.gettimeofday ();
+      };
   ]
 
 let suite =
