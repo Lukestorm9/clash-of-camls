@@ -237,13 +237,13 @@ let check_dead (e : Common.entity) =
     or the Trailer. *)
 let merchant_walk (e : Common.entity) =
   let angle =
-    (Unix.gettimeofday () /. 50.) +. (float_of_int e.uuid /. 30.)
+    (Unix.gettimeofday () /. 30.) +. (float_of_int e.uuid /. 15.)
   in
   {
     e with
-    x = 5000. *. cos angle;
-    y = 5000. *. sin angle;
-    vx = 300. *. sin angle;
+    x = 3500. *. cos angle;
+    y = 3500. *. sin angle;
+    vx = -300. *. sin angle;
     vy = 300. *. cos angle;
   }
 
@@ -334,7 +334,7 @@ let physics_loop
     Mutex.lock state.mutex;
     Array.iteri (tick_state state) state.data;
 
-    if compute_capacity state.data < 150 then
+    if compute_capacity state.data < 100 then
       spawn_enemy_cluster state points;
 
     Mutex.unlock state.mutex
@@ -345,7 +345,7 @@ let rec gen_spawn_points i =
   if i <= 0 then []
   else
     let angle = Random.float (2. *. 3.1415) in
-    let radius = 2000. +. Random.float 3000. in
+    let radius = 1500. +. Random.float 2000. in
     let x = radius *. cos angle in
     let y = radius *. sin angle in
     (x, y) :: gen_spawn_points (i - 1)

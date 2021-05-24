@@ -90,8 +90,12 @@ let rect_helper offset x y = Sdlvideo.rect (x + (offset * 94)) y 100 100
 (** [draw_items screen hashmap item_list] renders the items in
     [item_list] on the screen*)
 let draw_items screen hashmap (item_list : Common.weapon list) x y =
+  let rec take n lst =
+    if n <= 0 then []
+    else match lst with [] -> [] | h :: t -> h :: take (n - 1) t
+  in
   let item_name_list =
-    List.map (fun (x : Common.weapon) -> x.name) item_list
+    List.map (fun (x : Common.weapon) -> x.name) item_list |> take 3
   in
   List.iteri
     (fun offset weapon_name ->
