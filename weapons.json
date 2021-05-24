@@ -19,7 +19,7 @@
       "cooldown": 0.25
     },
     {
-      "name": "hand of judgement",
+      "name": "handofjudgement",
       "range": 150.0,
       "damage": 9999999.0,
       "cooldown": 1.0

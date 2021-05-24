@@ -150,8 +150,12 @@ let trader_inventory : Common.weapon list =
   [
     { name = "sword"; range = 0.0; damage = 0.0; cooldown = 0.0 };
     { name = "swordmk2"; range = 0.0; damage = 0.0; cooldown = 0.0 };
-    (*{ name = "hand of judgement"; range = 0.0; damage = 0.0; cooldown
-      = 0.0; };*)
+    {
+      name = "handofjudgement";
+      range = 0.0;
+      damage = 0.0;
+      cooldown = 0.0;
+    };
   ]
 
 let draw_shop_sign hashmap screen x y =
