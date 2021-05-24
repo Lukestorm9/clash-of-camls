@@ -146,6 +146,7 @@ let draw_health_score_inventory
         draw_items screen hashmap entity.inventory 819 950 )
   | None -> ()
 
+(** [trader_inventory] is the traders inventory. *)
 let trader_inventory : Common.weapon list =
   [
     { name = "sword"; range = 0.0; damage = 0.0; cooldown = 0.0 };
@@ -158,10 +159,16 @@ let trader_inventory : Common.weapon list =
     };
   ]
 
+(** [draw_shop_sign hashmap screen x y] draws the shop label above the
+    traders inventory. *)
 let draw_shop_sign hashmap screen x y =
   let shop_position_rect = Sdlvideo.rect (x - 94) (y + 35) 100 100 in
   blit_image shop_position_rect hashmap screen "shop96"
 
+(** [draw_trader_inventory (entity : Common.entity) hashmap screen p_x
+    p_y t_x t_y r_x r_y] draws the inventory of the trader when a player
+    is standing close to them, it also is responsible for drawing the
+    trader icon that points the player towards the trader. *)
 let draw_trader_inventory
     (entity : Common.entity)
     hashmap
@@ -198,6 +205,9 @@ let draw_trader_inventory
     in
     blit_image position_rect hashmap screen "trader_icon"
 
+(** [find_source (entity : Common.entity) hashmap screen anim_frame
+    time] gets a graphic and returns the source of its texture in the
+    hashmap. *)
 let find_source (entity : Common.entity) hashmap screen anim_frame time
     =
   try
@@ -308,15 +318,17 @@ let draw_golden_camel_pointer screen hashmap x y =
     let icon_pos_rect = Sdlvideo.rect width height 100 100 in
     blit_image icon_pos_rect hashmap screen "golden_camel_icon"
 
+(** [draw_win_lose world uuid screen hashmap] takes in screen, hashmap,
+    and, x and y coordinates and draws a win/loss message based on
+    whether or not a player has won or lost *)
 let draw_win_lose world uuid screen hashmap =
   let win_lose = World_manager.get_winner_opt world in
   let pos_rect = Sdlvideo.rect 384 200 100 100 in
   match win_lose with
   | None -> ()
   | Some id ->
-      if Some id = uuid then (
-        print_endline "YOUWIN";
-        blit_image pos_rect hashmap screen "⁪youwin" )
+      if Some id = uuid then
+        blit_image pos_rect hashmap screen "⁪youwin"
       else blit_image pos_rect hashmap screen "youlose"
 
 (** [run world map] takes in world state [world] and hashmap [map] and
