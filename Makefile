@@ -1,4 +1,4 @@
-MODULES=main common client server world_manager input_handler author model
+MODULES=main common client server world_manager input_handler author model render loader
 OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)
