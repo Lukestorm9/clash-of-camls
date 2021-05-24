@@ -40,7 +40,7 @@
 			"name": "dromedarius ultimus",
 			"health": 1000.0,
 			"graphic": "dromedary_sup",
-			"points": 100000,
+			"points": 1000000000,
 			"weapon": {
 				"name": "headbutt",
 				"range": 100.0,

@@ -50,6 +50,7 @@ type world_state = {
   data : entity option array;
   uuid : int option ref;
   user_command : action ref;
+  winner : int option ref;
   mutex : Mutex.t;
 }
 

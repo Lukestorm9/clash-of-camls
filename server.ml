@@ -92,7 +92,7 @@ let do_buy (state : Common.serv_state) (e : Common.entity) i =
     match i with
     | 1 -> weapon_change_if e "sword" 10
     | 2 -> weapon_change_if e "swordmk2" 1
-    | 3 -> weapon_change_if e "hand of judgement" 100
+    | 3 -> weapon_change_if e "handofjudgement" 1
     | _ -> e
   else e
 
@@ -150,11 +150,17 @@ let user_send_update_loop
       (* State read step *)
       Mutex.lock state.mutex;
       let copy = Array.copy state.data in
+      let winner_opt =
+        Common.array_index_of
+          (fun (e : Common.entity) ->
+            e.kind = Player && e.points > 1000000000)
+          state.data
+      in
       Mutex.unlock state.mutex;
 
       (* State send step *)
       let now = Unix.gettimeofday () in
-      Marshal.to_channel send_chan (now, copy) [];
+      Marshal.to_channel send_chan (winner_opt, now, copy) [];
       flush send_chan;
 
       (* User action receive step *)
@@ -318,6 +324,16 @@ let spawn_enemy_cluster (state : Common.serv_state) points =
   insert_entity state (Camel None) x y 0. 0. "camel" 10. [] (-10)
   |> ignore
 
+(** [static_update state] is the update that is run when someone has won
+    the game. *)
+let static_update (state : Common.serv_state) =
+  let updated =
+    Array.map
+      (fun e -> Option.bind e (fun v -> check_dead v))
+      state.data
+  in
+  Array.blit updated 0 state.data 0 (Array.length state.data)
+
 (** [physics_loop point_state_pair] is the physics loop, which is
     running all the time in the background. Set to run at approx 20
     ticks per second. TODO: make time exact. *)
@@ -332,7 +348,15 @@ let physics_loop
     Thread.delay 0.05;
 
     Mutex.lock state.mutex;
-    Array.iteri (tick_state state) state.data;
+    let winner_opt =
+      Common.array_index_of
+        (fun (e : Common.entity) ->
+          e.kind = Player && e.points > 1000000000)
+        state.data
+    in
+    if Option.is_none winner_opt then
+      Array.iteri (tick_state state) state.data
+    else static_update state;
 
     if compute_capacity state.data < 100 then
       spawn_enemy_cluster state points;

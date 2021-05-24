@@ -289,7 +289,7 @@ let model_apply_enemy_step_tests
 
 let world_state_maker ~data ~mutex ~uuid ~user_command :
     Common.world_state =
-  { data; mutex; uuid; user_command }
+  { data; mutex; uuid; user_command; winner = ref None }
 
 let world_state_maker_server ~data ~points_gathered ~mutex :
     Common.serv_state =

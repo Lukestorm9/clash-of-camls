@@ -87,6 +87,8 @@ type world_state = {
   uuid : int option ref;
   (* The last thing a user wanted to do*)
   user_command : action ref;
+  (* Wether or not there is a winner *)
+  winner : int option ref;
   (* The mutex for the world state. The structure requires this to be
      locked before accessing any of its fields. *)
   mutex : Mutex.t;

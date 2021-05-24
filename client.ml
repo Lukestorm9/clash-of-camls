@@ -59,9 +59,9 @@ let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
   try
     while true do
       (* State receive step *)
-      let (time, noveau) =
+      let (won_opt, time, noveau) =
         ( Marshal.from_channel recv_chan
-          : float * Common.entity option array )
+          : int option * float * Common.entity option array )
       in
       let noveau = Array.map nowify noveau in
       let delta = Unix.gettimeofday () -. time in
@@ -71,6 +71,7 @@ let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
 
       (* State update step *)
       Mutex.lock state.mutex;
+      state.winner := won_opt;
       Array.blit noveau 0 state.data 0 len;
       let action = sanitize_action !(state.user_command) last_action in
       let pair = (Option.get !(state.uuid), action) in
@@ -91,6 +92,7 @@ let start addr port =
       data = Array.make 500 None;
       mutex = Mutex.create ();
       uuid = ref None;
+      winner = ref None;
       user_command = ref Common.Nothing;
     }
   in
