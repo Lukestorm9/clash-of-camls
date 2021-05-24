@@ -11,6 +11,7 @@ type entity_type =
   | Player
   | Camel of int option
   | Merchant
+  | Trailer
 
 (** The type of a weapon *)
 type weapon = {

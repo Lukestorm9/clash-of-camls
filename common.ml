@@ -8,6 +8,7 @@ type entity_type =
   | Player
   | Camel of int option
   | Merchant
+  | Trailer
 
 type weapon = {
   name : string;

@@ -233,11 +233,19 @@ let check_dead (e : Common.entity) =
   | _ -> if e.health > 0. then Some e else None
 
 (** [merchant_walk e] has the merchant walk around in a circle. Simple
-    enough not to require testing. Requires that e is in fact a
-    Merchant. *)
+    enough not to require testing. Requires that e is in fact a Merchant
+    or the Trailer. *)
 let merchant_walk (e : Common.entity) =
-  let angle = Unix.gettimeofday () /. 20. in
-  { e with x = 1000. *. cos angle; y = 1000. *. sin angle }
+  let angle =
+    (Unix.gettimeofday () /. 50.) +. (float_of_int e.uuid /. 30.)
+  in
+  {
+    e with
+    x = 5000. *. cos angle;
+    y = 5000. *. sin angle;
+    vx = 300. *. sin angle;
+    vy = 300. *. cos angle;
+  }
 
 (** [tick_state state i e] ticks the state of the world, that is, it
     applies the relevant AI step for an entity. Only do operations on
@@ -257,7 +265,7 @@ let tick_state (state : Common.serv_state) i (e : Common.entity option)
             |> apply_physics_step |> check_dead
         | Camel (Some i) ->
             Model.follow state e |> apply_physics_step |> check_dead
-        | Merchant -> merchant_walk e |> check_dead
+        | Merchant | Trailer -> merchant_walk e |> check_dead
         | Player | Physik -> apply_physics_step e |> check_dead )
   in
   state.data.(i) <- res
@@ -337,7 +345,7 @@ let rec gen_spawn_points i =
   if i <= 0 then []
   else
     let angle = Random.float (2. *. 3.1415) in
-    let radius = 2000. +. Random.float 4000. in
+    let radius = 2000. +. Random.float 3000. in
     let x = radius *. cos angle in
     let y = radius *. sin angle in
     (x, y) :: gen_spawn_points (i - 1)
@@ -345,8 +353,7 @@ let rec gen_spawn_points i =
 (** [initial_state_set state] sets the initial game state to a useable
     one, with a merchant, boss, etc. *)
 let initial_state_set (state : Common.serv_state) =
-  insert_entity state (Camel (Some 1)) (-450.) 10. 0. 0. "trailer" 100.
-    [] (-10)
+  insert_entity state Trailer (-450.) 10. 0. 0. "trailer" 100. [] (-10)
   |> ignore;
   insert_entity state Merchant (-460.) 140. 0. 0. "trader" 100. [] (-10)
   |> ignore;
