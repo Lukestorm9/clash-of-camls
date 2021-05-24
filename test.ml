@@ -1,21 +1,30 @@
 (** This this section outlines the test plan.
 
     1. Parts of the system were automatically tested by OUnit vs.
-    manually tested: We test the [World Manager] functions using OUnit
-    testing. [Render], [Client], and parts of [Client] are te test
-    manually as there is good way to test the functions those modules.
-    [World Manager] has functions that well-suited for testing using the
-    OUnit suite, thus it was not manually tested.e
+    manually tested: We tested the [World Manager] and [Model] functions
+    using OUnit testing). [World Mangager] and [Model] were responsible
+    for managing the world state and dealing with serverside model
+    calculations (i.e., world state updates). [Render], [Client], and
+    [Server] are tested manually as there is no good way to test the
+    functions those modules. [World Manager] and [Model] has functions
+    that are well-suited for testing using the OUnit suite, thus it was
+    not manually tested.
 
     2. Modules were tested by OUnit and how test cases were developed
     (black box, glass box, randomized, etc.): The tests for
-    [World Manager] is tests for black box testing. The tests attempt to
-    ensure that the fucntions to not return outputs that are unintended.
-    The test for [World Manager] attempt to see that the out is as
-    intended by the documentation.
+    [World Manager] and [Model] are black box tested. The tests attempt
+    to ensure that the fucntions to not return outputs that are
+    unintended. The tests for [World Manager] and [Model] attempt to see
+    that the out is as intended by the documentation.
 
     3. An argument for why the testing approach demonstrates the
-    correctness of the system: *)
+    correctness of the system: We throughly tested functions that be
+    tested to see if they return the behavior that we want from them.
+    They functions do indeed accomplish this task as the test cases
+    pass. For the remaining features that were either very difficult to
+    test or impossible to test using a Ounit test suite, we throughly
+    test the game by actually playing it and seeing if the functionality
+    we intended was the functionality that showed up.*)
 
 open OUnit2
 open World_manager
@@ -779,10 +788,7 @@ let model_tests =
       "Apply enemey step on world_4_server with \
        moving_camel_near_entity_3"
       world_4_server entity_5_center
-      {
-        entity_5_center with
-        last_attack_time = Unix.gettimeofday ();
-      };
+      { entity_5_center with last_attack_time = Unix.gettimeofday () };
   ]
 
 let suite =
