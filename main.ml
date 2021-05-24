@@ -1,3 +1,5 @@
+(** [creates_hash] loads in the images for render and it maps names to
+   their equivalent image using a hash function*)
 let create_hash () =
   let image_hash = Hashtbl.create 10 in
   let files = Sys.readdir "assets" in
@@ -8,8 +10,8 @@ let create_hash () =
   |> ignore;
   image_hash
 
-(** [remote_config] configures remote connection for the client. It checks
-  if the number of arguments are correct.*)
+(** [remote_config] configures remote connection for the client. It
+    checks if the number of arguments are correct.*)
 let remote_config number_of_args arguments =
   try
     if number_of_args != 4 then
@@ -27,9 +29,9 @@ let remote_config number_of_args arguments =
       | None -> print_endline "Not valid server address"
   with Failure _ -> print_endline "Unable to parse input"
 
-(** [local_config] configures local connection for the client. Client will
-  start at "0.0.0.0". You must provide a port. It checks if the number
-  of arguments are correct.*)
+(** [local_config] configures local connection for the client. Client
+    will start at "0.0.0.0". You must provide a port. It checks if the
+    number of arguments are correct.*)
 let local_config number_of_args arguments =
   try
     if number_of_args != 3 then
@@ -48,15 +50,15 @@ let local_config number_of_args arguments =
       | None -> print_endline "Not valid server address"
   with Failure _ -> print_endline "Unable to parse input"
 
-(** [main] parses command line arguments and executes the right commands.
-  You can make either a local configuration or remote configuration. The
-  local configuration is for single player, and the remote configuration
-  is multi-player. RI: The first argument must be CMD. The second
-  argument must be a string with no extra spaces, that is say only one
-  space between each argument and no spaces before or after the second
-  string argument. The string must not have a length greater than 2.
-  Examples of commands one could executed: (1) make play CMD="local
-  <port>" (2) make play CMD="remote <client> <port>"*)
+(** [main] parses command line arguments and executes the right
+    commands. You can make either a local configuration or remote
+    configuration. The local configuration is for single player, and the
+    remote configuration is multi-player. RI: The first argument must be
+    CMD. The second argument must be a string with no extra spaces, that
+    is say only one space between each argument and no spaces before or
+    after the second string argument. The string must not have a length
+    greater than 2. Examples of commands one could executed: (1) make
+    play CMD="local <port>" (2) make play CMD="remote <client> <port>"*)
 let main () =
   let number_of_args = Array.length Sys.argv in
   if number_of_args == 1 || number_of_args > 4 then
