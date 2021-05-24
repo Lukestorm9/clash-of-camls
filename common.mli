@@ -4,7 +4,7 @@
     have to be repeated in common.ml, otherwise we would not give them
     there.*)
 
-(** The type of the entity *)
+(** The kind of the entity *)
 type entity_type =
   | Physik
   | Ai
