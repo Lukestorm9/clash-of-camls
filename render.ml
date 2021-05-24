@@ -305,12 +305,19 @@ let draw_golden_camel_pointer screen hashmap x y =
       int_of_float
         (540. +. (-1. *. y *. 540. /. sqrt ((x *. x) +. (y *. y))))
     in
-    let golden_camel_icon_position_rect =
-      Sdlvideo.rect width height 100 100
-    in
-    Sdlvideo.blit_surface ~dst_rect:golden_camel_icon_position_rect
-      ~src:(Hashtbl.find hashmap "golden_camel_icon.png")
-      ~dst:screen ()
+    let icon_pos_rect = Sdlvideo.rect width height 100 100 in
+    blit_image icon_pos_rect hashmap screen "golden_camel_icon"
+
+let draw_win_lose world uuid screen hashmap =
+  let win_lose = World_manager.get_winner_opt world in
+  let pos_rect = Sdlvideo.rect 384 200 100 100 in
+  match win_lose with
+  | None -> ()
+  | Some id ->
+      if Some id = uuid then (
+        print_endline "YOUWIN";
+        blit_image pos_rect hashmap screen "⁪youwin" )
+      else blit_image pos_rect hashmap screen "youlose"
 
 (** [run world map] takes in world state [world] and hashmap [map] and
     renders the world map and every entity in world along with its
@@ -341,6 +348,7 @@ let run (world_state : Common.world_state) hashmap =
           (w, h) (x, y) player_uuid)
       world
     |> ignore;
+    draw_win_lose world_state player_uuid screen hashmap;
     draw_golden_camel_pointer screen hashmap x y;
     Sdlvideo.flip screen;
     let time_end = Sdltimer.get_ticks () in
