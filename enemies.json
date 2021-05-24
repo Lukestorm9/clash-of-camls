@@ -39,7 +39,7 @@
 		{
 			"name": "dromedarius ultimus",
 			"health": 1000.0,
-			"graphic": "dromedary_sup",
+			"graphic": "kingdromedary",
 			"points": 1000000000,
 			"weapon": {
 				"name": "headbutt",
