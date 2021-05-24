@@ -153,7 +153,7 @@ let user_send_update_loop
       let winner_opt =
         Common.array_index_of
           (fun (e : Common.entity) ->
-            e.kind = Player && e.points > 1000000000)
+            e.kind = Player && e.points >= 1000000000)
           state.data
       in
       Mutex.unlock state.mutex;
@@ -354,7 +354,7 @@ let physics_loop
     let winner_opt =
       Common.array_index_of
         (fun (e : Common.entity) ->
-          e.kind = Player && e.points > 1000000000)
+          e.kind = Player && e.points >= 1000000000)
         state.data
     in
     if Option.is_none winner_opt then
