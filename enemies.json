@@ -38,14 +38,14 @@
 		},
 		{
 			"name": "dromedarius ultimus",
-			"health": 1000.0,
 			"graphic": "kingdromedary",
+			"health": 100000.0,
 			"points": 1000000000,
 			"weapon": {
 				"name": "headbutt",
 				"range": 100.0,
-				"damage": 50.0,
-				"cooldown": 0.2
+				"damage": 25.0,
+				"cooldown": 0.8
 			}
 		}
 	]

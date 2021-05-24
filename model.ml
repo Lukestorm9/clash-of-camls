@@ -197,10 +197,6 @@ let optionally_attack
     dst2 < weapon.range ** 2.
     && now -. e.last_attack_time > weapon.cooldown
   then (
-    print_endline
-      ( "Attacking player w/ uuid = " ^ string_of_int i ^ " from "
-      ^ string_of_int e.uuid ^ " @ " ^ string_of_float e.x ^ ", "
-      ^ string_of_float e.y );
     state.data.(i) <-
       Some { closest with health = closest.health -. weapon.damage };
     { e with vx = dvx; vy = dvy; last_attack_time = now } )

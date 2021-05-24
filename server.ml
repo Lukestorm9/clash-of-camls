@@ -91,8 +91,8 @@ let do_buy (state : Common.serv_state) (e : Common.entity) i =
   then
     match i with
     | 1 -> weapon_change_if e "sword" 10
-    | 2 -> weapon_change_if e "swordmk2" 1
-    | 3 -> weapon_change_if e "handofjudgement" 1
+    | 2 -> weapon_change_if e "swordmk2" 20
+    | 3 -> weapon_change_if e "handofjudgement" 100
     | _ -> e
   else e
 
@@ -251,6 +251,7 @@ let merchant_walk (e : Common.entity) =
     y = 3500. *. sin angle;
     vx = -300. *. sin angle;
     vy = 300. *. cos angle;
+    last_direction_moved = -300. *. sin angle < 0.;
   }
 
 (** [tick_state state i e] ticks the state of the world, that is, it
@@ -278,6 +279,7 @@ let tick_state (state : Common.serv_state) i (e : Common.entity option)
 
 let enemies = Loader.load_enemies ()
 
+(** [find_enemy str] finds the associated enemy prototype *)
 let find_enemy str : Loader.enemy =
   List.find (fun (s : Loader.enemy) -> s.name = str) enemies
 
@@ -327,9 +329,10 @@ let spawn_enemy_cluster (state : Common.serv_state) points =
 (** [static_update state] is the update that is run when someone has won
     the game. *)
 let static_update (state : Common.serv_state) =
+  let zero_velocity (e : Common.entity) = { e with vx = 0.; vy = 0. } in
   let updated =
     Array.map
-      (fun e -> Option.bind e (fun v -> check_dead v))
+      (fun e -> Option.bind e (fun v -> zero_velocity v |> check_dead))
       state.data
   in
   Array.blit updated 0 state.data 0 (Array.length state.data)
