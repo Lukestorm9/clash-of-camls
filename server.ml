@@ -91,7 +91,7 @@ let do_buy (state : Common.serv_state) (e : Common.entity) i =
   then
     match i with
     | 1 -> weapon_change_if e "sword" 10
-    | 2 -> weapon_change_if e "sword mk2" 20
+    | 2 -> weapon_change_if e "swordmk2" 1
     | 3 -> weapon_change_if e "hand of judgement" 100
     | _ -> e
   else e

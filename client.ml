@@ -29,6 +29,15 @@ let adjust_last_attack_time delta (e : Common.entity option) =
   | Some e ->
       Some { e with last_attack_time = e.last_attack_time +. delta }
 
+let sanitize_action
+    (action : Common.action)
+    (last_action : Common.action ref) =
+  match (action, !last_action) with
+  | Buy _, Buy _ -> Common.Nothing
+  | _ ->
+      last_action := action;
+      action
+
 (** [client_loop sock_state_pair] is the client update loop. It pulls
     data from the server, and sticks it in the shared mutable state. *)
 let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
@@ -46,6 +55,7 @@ let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
   Mutex.unlock state.mutex;
 
   (* Listen to updates *)
+  let last_action = ref Common.Nothing in
   try
     while true do
       (* State receive step *)
@@ -62,7 +72,8 @@ let client_loop ((sock, state) : Unix.file_descr * Common.world_state) =
       (* State update step *)
       Mutex.lock state.mutex;
       Array.blit noveau 0 state.data 0 len;
-      let pair = (Option.get !(state.uuid), !(state.user_command)) in
+      let action = sanitize_action !(state.user_command) last_action in
+      let pair = (Option.get !(state.uuid), action) in
       Mutex.unlock state.mutex;
 
       (* User action transmit step *)
