@@ -251,6 +251,7 @@ let merchant_walk (e : Common.entity) =
     y = 3500. *. sin angle;
     vx = -300. *. sin angle;
     vy = 300. *. cos angle;
+    last_direction_moved = -300. *. sin angle < 0.;
   }
 
 (** [tick_state state i e] ticks the state of the world, that is, it
