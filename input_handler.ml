@@ -30,6 +30,12 @@ let key_checker (world_state : Common.world_state) =
         mutex_helper world_state (Common.Move Down)
     | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_d } ->
         mutex_helper world_state (Common.Move Left)
+    | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_1 } ->
+        mutex_helper world_state (Common.Buy 1)
+    | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_2 } ->
+        mutex_helper world_state (Common.Buy 2)
+    | Sdlevent.KEYDOWN { Sdlevent.keysym = Sdlkey.KEY_3 } ->
+        mutex_helper world_state (Common.Buy 3)
     | Sdlevent.KEYUP _ -> mutex_helper world_state Common.Nothing
     | _ -> ()
   done

@@ -31,10 +31,15 @@ let anim_decider right idle attack weapon =
     [screen] at [pos_rect] by first finding the image associated with
     [graphic] in [hashmap] and then rendering it. *)
 let blit_image pos_rect hashmap screen (graphic : string) =
-  Sdlvideo.blit_surface ~dst_rect:pos_rect
-    ~src:(Hashtbl.find hashmap graphic)
-    ~dst:screen ();
-  ()
+  try
+    let texture = Hashtbl.find hashmap (graphic ^ ".png") in
+    Sdlvideo.blit_surface ~dst_rect:pos_rect ~src:texture ~dst:screen ();
+    ()
+  with Not_found ->
+    Sdlvideo.blit_surface ~dst_rect:pos_rect
+      ~src:(Hashtbl.find hashmap "error.png")
+      ~dst:screen ();
+    ()
 
 (** [draw_health screen hashmap x y health max_health] renders the
     entities current [health] and converts it to a number between 0 and
@@ -45,7 +50,7 @@ let draw_health screen hashmap x y health max_health =
   let health_num = max (health /. max_health *. 5.0) 0. in
   let health_pos_rect = Sdlvideo.rect x (y - 15) 1000 1000 in
   blit_image health_pos_rect hashmap screen
-    ("health_bar_" ^ string_of_int (int_of_float health_num) ^ ".png")
+    ("health_bar_" ^ string_of_int (int_of_float health_num))
 
 (** [score_to_string screen hashmap x y num len] renders [num] which
     represents one character in a players score. This is called by
@@ -54,7 +59,7 @@ let score_to_string screen hashmap x y (num : char) len =
   let score_pos_rect =
     Sdlvideo.rect (x - (12 * len)) (y - 17) 100 100
   in
-  blit_image score_pos_rect hashmap screen (String.make 1 num ^ ".png")
+  blit_image score_pos_rect hashmap screen (String.make 1 num)
 
 (** [draw_score screen hashmap x y score] renders a players score on
     screen at the correct location. It does this by converting a players
@@ -80,26 +85,26 @@ let draw_score screen hashmap x y score =
 
 (** [rect_helper x] is used to calculate the x coordinate that an item
     should be rendered at on screen. *)
-let rect_helper x = Sdlvideo.rect (819 + (x * 94)) 950 100 100
+let rect_helper offset x y = Sdlvideo.rect (x + (offset * 94)) y 100 100
 
 (** [draw_items screen hashmap item_list] renders the items in
     [item_list] on the screen*)
-let draw_items screen hashmap (item_list : Common.weapon list) =
+let draw_items screen hashmap (item_list : Common.weapon list) x y =
   let item_name_list =
     List.map (fun (x : Common.weapon) -> x.name) item_list
   in
   List.iteri
     (fun offset weapon_name ->
-      Sdlvideo.blit_surface ~dst_rect:(rect_helper offset)
+      Sdlvideo.blit_surface
+        ~dst_rect:(rect_helper offset x y)
         ~src:(Hashtbl.find hashmap (weapon_name ^ ".png"))
         ~dst:screen ())
     item_name_list
 
 (** [draw_inventory screen hashmap] renders the inventory at the correct
     location on screen. *)
-let draw_inventory screen hashmap =
-  let inv_position_rect = Sdlvideo.rect 819 950 100 100 in
-  Sdlvideo.blit_surface ~dst_rect:inv_position_rect
+let draw_inventory screen hashmap pos_rect =
+  Sdlvideo.blit_surface ~dst_rect:pos_rect
     ~src:(Hashtbl.find hashmap "inventory.png")
     ~dst:screen ()
 
@@ -122,6 +127,7 @@ let draw_health_score_inventory
     x
     y
     uuid =
+  let inv_position_rect = Sdlvideo.rect 819 950 100 100 in
   if entity.kind = Player || entity.kind = Ai then
     draw_health screen hashmap x y entity.health entity.max_health;
   if entity.kind = Player then
@@ -129,9 +135,56 @@ let draw_health_score_inventory
   match uuid with
   | Some uuid ->
       if entity.uuid = uuid then (
-        draw_inventory screen hashmap;
-        draw_items screen hashmap entity.inventory )
+        draw_inventory screen hashmap inv_position_rect;
+        draw_items screen hashmap entity.inventory 819 950 )
   | None -> ()
+
+let trader_inventory : Common.weapon list =
+  [
+    { name = "sword"; range = 0.0; damage = 0.0; cooldown = 0.0 };
+    { name = "fists"; range = 0.0; damage = 0.0; cooldown = 0.0 };
+    (*{ name = "hand of judgement"; range = 0.0; damage = 0.0; cooldown
+      = 0.0; };*)
+  ]
+
+let draw_shop_sign hashmap screen x y =
+  let shop_position_rect = Sdlvideo.rect (x - 94) (y + 35) 100 100 in
+  blit_image shop_position_rect hashmap screen "shop96"
+
+let draw_trader_inventory
+    (entity : Common.entity)
+    hashmap
+    screen
+    p_x
+    p_y
+    t_x
+    t_y
+    r_x
+    r_y =
+  if ((p_x - t_x) * (p_x - t_x)) + ((p_y - t_y) * (p_y - t_y)) < 100000
+  then (
+    let inv_position_rect =
+      Sdlvideo.rect (r_x - 94) (r_y + 100) 100 100
+    in
+    draw_inventory screen hashmap inv_position_rect;
+    draw_items screen hashmap trader_inventory (r_x - 94) (r_y + 100);
+    draw_shop_sign hashmap screen r_x r_y )
+
+let find_source (entity : Common.entity) hashmap screen anim_frame time
+    =
+  try
+    let weapon_name = weapon_check entity.inventory in
+    Hashtbl.find hashmap
+      (string_combiner entity.graphic
+         (anim_decider
+            (not entity.last_direction_moved)
+            (entity.vx = 0.0 && entity.vy = 0.0)
+            (time -. entity.last_attack_time < 0.55)
+            weapon_name)
+         anim_frame)
+  with Not_found -> (
+    try Hashtbl.find hashmap (entity.graphic ^ ".png")
+    with Not_found -> Hashtbl.find hashmap "error.png" )
 
 (** [image_getter_render entity hashmap screen anim_frame (w, h) (x, y)
     uuid] is used to render all entities and health, inventory, and
@@ -149,24 +202,14 @@ let image_getter_render
   let y_coord = int_of_float entity.y - 48 + (h / 2) - int_of_float y in
   let position_rect = Sdlvideo.rect x_coord y_coord 100 100 in
   let now = Unix.gettimeofday () in
-  let source =
-    try
-      let weapon_name = weapon_check entity.inventory in
-      Hashtbl.find hashmap
-        (string_combiner entity.graphic
-           (anim_decider
-              (not entity.last_direction_moved)
-              (entity.vx = 0.0 && entity.vy = 0.0)
-              (now -. entity.last_attack_time < 0.55)
-              weapon_name)
-           anim_frame)
-    with Not_found -> (
-      try Hashtbl.find hashmap (entity.graphic ^ ".png")
-      with Not_found -> Hashtbl.find hashmap "error.png" )
-  in
+  let source = find_source entity hashmap screen anim_frame now in
   Sdlvideo.blit_surface ~dst_rect:position_rect ~src:source ~dst:screen
     ();
-  draw_health_score_inventory entity hashmap screen x_coord y_coord uuid
+  draw_health_score_inventory entity hashmap screen x_coord y_coord uuid;
+  if entity.kind = Merchant then
+    draw_trader_inventory entity hashmap screen (int_of_float x)
+      (int_of_float y) (int_of_float entity.x) (int_of_float entity.y)
+      x_coord y_coord
 
 (** [generate_y height background_size x y acc] generates the vertical
     grid components such as (1,2) (1,3) (2,2) (2,3). *)

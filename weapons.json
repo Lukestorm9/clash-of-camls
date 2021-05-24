@@ -7,6 +7,18 @@
       "cooldown": 1.0
     },
     {
+      "name": "sword mk2",
+      "range": 150.0,
+      "damage": 40.0,
+      "cooldown": 0.8
+    },
+    {
+      "name": "sword mk3",
+      "range": 150.0,
+      "damage": 50.0,
+      "cooldown": 0.6
+    },
+    {
       "name": "fists",
       "range": 150.0,
       "damage": 20.0,
