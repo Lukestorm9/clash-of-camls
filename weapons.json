@@ -20,9 +20,9 @@
     },
     {
       "name": "handofjudgement",
-      "range": 150.0,
+      "range": 200.0,
       "damage": 9999999.0,
-      "cooldown": 1.0
+      "cooldown": 0.25
     }
   ]
 }
