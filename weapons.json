@@ -7,7 +7,7 @@
       "cooldown": 1.0
     },
     {
-      "name": "sword mk2",
+      "name": "swordmk2",
       "range": 200.0,
       "damage": 40.0,
       "cooldown": 0.8

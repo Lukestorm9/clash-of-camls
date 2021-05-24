@@ -95,10 +95,13 @@ let draw_items screen hashmap (item_list : Common.weapon list) x y =
   in
   List.iteri
     (fun offset weapon_name ->
+      let images =
+        try Hashtbl.find hashmap (weapon_name ^ ".png")
+        with Not_found -> Hashtbl.find hashmap "error.png"
+      in
       Sdlvideo.blit_surface
         ~dst_rect:(rect_helper offset x y)
-        ~src:(Hashtbl.find hashmap (weapon_name ^ ".png"))
-        ~dst:screen ())
+        ~src:images ~dst:screen ())
     item_name_list
 
 (** [draw_inventory screen hashmap] renders the inventory at the correct
@@ -169,6 +172,23 @@ let draw_trader_inventory
     draw_inventory screen hashmap inv_position_rect;
     draw_items screen hashmap trader_inventory (r_x - 94) (r_y + 100);
     draw_shop_sign hashmap screen r_x r_y )
+  else
+    let norm =
+      sqrt
+        (float_of_int
+           (((t_x - p_x) * (t_x - p_x)) + ((t_y - p_y) * (t_y - p_y))))
+    in
+    let position_rect =
+      Sdlvideo.rect
+        ( int_of_float
+            ((float_of_int (t_x - p_x) /. norm *. 100.) +. (1920. /. 2.))
+        - 48 )
+        ( int_of_float
+            ((float_of_int (t_y - p_y) /. norm *. 100.) +. (1080. /. 2.))
+        - 48 )
+        100 100
+    in
+    blit_image position_rect hashmap screen "trader_idle_right_0"
 
 let find_source (entity : Common.entity) hashmap screen anim_frame time
     =
