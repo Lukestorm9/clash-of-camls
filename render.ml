@@ -145,7 +145,7 @@ let draw_health_score_inventory
 let trader_inventory : Common.weapon list =
   [
     { name = "sword"; range = 0.0; damage = 0.0; cooldown = 0.0 };
-    { name = "fists"; range = 0.0; damage = 0.0; cooldown = 0.0 };
+    { name = "swordmk2"; range = 0.0; damage = 0.0; cooldown = 0.0 };
     (*{ name = "hand of judgement"; range = 0.0; damage = 0.0; cooldown
       = 0.0; };*)
   ]
@@ -181,14 +181,14 @@ let draw_trader_inventory
     let position_rect =
       Sdlvideo.rect
         ( int_of_float
-            ((float_of_int (t_x - p_x) /. norm *. 100.) +. (1920. /. 2.))
+            ((float_of_int (t_x - p_x) /. norm *. 500.) +. (1920. /. 2.))
         - 48 )
         ( int_of_float
-            ((float_of_int (t_y - p_y) /. norm *. 100.) +. (1080. /. 2.))
+            ((float_of_int (t_y - p_y) /. norm *. 500.) +. (1080. /. 2.))
         - 48 )
         100 100
     in
-    blit_image position_rect hashmap screen "trader_idle_right_0"
+    blit_image position_rect hashmap screen "trader_icon"
 
 let find_source (entity : Common.entity) hashmap screen anim_frame time
     =
