@@ -6,9 +6,9 @@
     for managing the world state and dealing with serverside model
     calculations (i.e., world state updates). [Render], [Client], and
     [Server] are tested manually as there is no good way to test the
-    functions those modules. [World Manager] and [Model] has functions
-    that are well-suited for testing using the OUnit suite, thus it was
-    not manually tested.
+    functions those modules. [World Manager] and [Model] have functions
+    that are well-suited for testing using the OUnit suite, and thus
+    were tested using OUnit.
 
     2. Modules were tested by OUnit and how test cases were developed
     (black box, glass box, randomized, etc.): The tests for
@@ -21,10 +21,14 @@
     correctness of the system: We throughly tested functions that be
     tested to see if they return the behavior that we want from them.
     They functions do indeed accomplish this task as the test cases
-    pass. For the remaining features that were either very difficult to
-    test or impossible to test using a Ounit test suite, we throughly
-    test the game by actually playing it and seeing if the functionality
-    we intended was the functionality that showed up.*)
+    pass. Thus, we know that the [World Manager] and [Model] underlying
+    the game are correct. For the remaining features that were either
+    very difficult to test or impossible to test using a Ounit test
+    suite, we throughly test the game by actually playing it and seeing
+    if the functionality we intended was the functionality that showed
+    up. Notice that this also tests [World Manager] and [Model], as
+    these two modules provide the functionality that the player
+    interacts with. *)
 
 open OUnit2
 open World_manager
@@ -524,12 +528,12 @@ let world_manager_tests =
       entities, however the moving entity should be changed to where it
       is predicated to be (i.e. it should apply get_local's location
       smoothing)*)
-    (Thread.delay (1. /. 4.);
-     world_manager_get_local_tests
-       "Using world_1 with (0,0) | Expect all two entities: one \
-        non-moving and one moving"
-       world_1 0. 0.
-       [ non_moving_entity_at_origin; moving_entity_at_origin' ]);
+    ( Thread.delay (1. /. 4.);
+      world_manager_get_local_tests
+        "Using world_1 with (0,0) | Expect all two entities: one \
+         non-moving and one moving"
+        world_1 0. 0.
+        [ non_moving_entity_at_origin; moving_entity_at_origin' ] );
     (*see if it returns "None" when uuid is not found in the given zero
       entities*)
     world_manager_get_player_xy_tests

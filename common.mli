@@ -12,7 +12,7 @@ type entity_type =
   | Camel of int option
   | Merchant
 
-(** A weapon type *)
+(** The type of a weapon *)
 type weapon = {
   name : string;
   range : float;

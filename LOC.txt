@@ -1,0 +1,3 @@
+We fractored out all of the data loading into a seperate loader module. 
+
+There are some copies of the type definitions defined in common.mli replicated in common.ml. These type definitions are necessary public (i.e. in common.mli) in order to allow other modules to work with them directly. In order to convince ocamlbuild to compile, they have to be replicated in common.ml. It may make sense to exclude these ~50 lines from the line count.

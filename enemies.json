@@ -35,6 +35,18 @@
 				"damage": 34.0,
 				"cooldown": 1.0
 			}
+		},
+		{
+			"name": "dromedarius ultimus",
+			"health": 1000.0,
+			"graphic": "dromedary_sup",
+			"points": 100000,
+			"weapon": {
+				"name": "headbutt",
+				"range": 100.0,
+				"damage": 50.0,
+				"cooldown": 0.2
+			}
 		}
 	]
 }

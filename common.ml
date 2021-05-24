@@ -1,4 +1,7 @@
-(* copy of the definition in common.mli *)
+(** There are some copies of the type definition in common.mli. These
+    are necessary public in order to allow other files to work with them
+    directly. In order to convince ocamlbuild to compile, they have to
+    be replicated here. *)
 type entity_type =
   | Physik
   | Ai

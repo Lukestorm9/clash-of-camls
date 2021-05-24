@@ -84,12 +84,17 @@ let weapon_change_if (e : Common.entity) weapon_name cost =
 
 (** [do_buy e i] computes the result of player e attempting to buy
     weapon i*)
-let do_buy (e : Common.entity) i =
-  match i with
-  | 0 -> weapon_change_if e "sword" 10
-  | 1 -> weapon_change_if e "sword" 20
-  | 2 -> weapon_change_if e "hand of judgement" 100
-  | _ -> e
+let do_buy (state : Common.serv_state) (e : Common.entity) i =
+  let merchant = Option.get state.data.(1) in
+  if
+    ((e.x -. merchant.x) ** 2.) +. ((e.y -. merchant.y) ** 2.) < 100000.
+  then
+    match i with
+    | 1 -> weapon_change_if e "sword" 10
+    | 2 -> weapon_change_if e "sword mk2" 20
+    | 3 -> weapon_change_if e "hand of judgement" 100
+    | _ -> e
+  else e
 
 (** [do_action state uuid actions] has the player with uuid do the
     action specified. Requires the state mutex to be held *)
@@ -106,7 +111,7 @@ let do_action (state : Common.serv_state) uuid action =
       | Common.Move d -> Some (Model.process_movement e d)
       | Common.Attack d -> Some (Model.process_attack state e d)
       | Common.Nothing -> Some { e with vx = 0.; vy = 0. }
-      | Common.Buy _ -> Some e
+      | Common.Buy i -> Some (do_buy state e i)
     in
     state.data.(idex) <- noveau
   in
@@ -123,17 +128,11 @@ let user_send_update_loop
   print_endline ("logon w/ token = " ^ string_of_int a);
   Mutex.lock state.mutex;
   let angle = Random.float (2. *. 3.1415) in
-  let x = 300. *. cos angle in
-  let y = 300. *. sin angle in
-  let weapon_idx = Random.int (List.length weighted_weapons) in
+  let x = 3000. *. cos angle in
+  let y = 3000. *. sin angle in
   let uuid =
     insert_entity state Player x y 0. 0. "character" 100.
-      [
-        List.nth weighted_weapons weapon_idx;
-        find_weapon "sword";
-        find_weapon "fists";
-      ]
-      10
+      [ find_weapon "fists" ] 10
   in
   Mutex.unlock state.mutex;
   (* Maybe send some sort of an error message to the client? *)
@@ -198,16 +197,15 @@ let apply_physics_step (e : Common.entity) : Common.entity =
     time_sent_over = now;
   }
 
-(** [respawn_player weapon e] respawns the player e with the weapon
-    weapon. *)
-let respawn_player weapon (e : Common.entity) : Common.entity option =
+(** [respawn_player e] respawns the player e *)
+let respawn_player (e : Common.entity) : Common.entity option =
   let angle = Random.float (2. *. 3.1415) in
   Some
     {
       kind = Player;
       uuid = e.uuid;
-      x = 100. *. cos angle;
-      y = 100. *. sin angle;
+      x = 3000. *. cos angle;
+      y = 3000. *. sin angle;
       vx = 0.;
       vy = 0.;
       time_sent_over = Unix.gettimeofday ();
@@ -215,7 +213,7 @@ let respawn_player weapon (e : Common.entity) : Common.entity option =
       health = 100.;
       max_health = 100.;
       last_direction_moved = false;
-      inventory = [ weapon ];
+      inventory = [ find_weapon "fists" ];
       points = max (e.points / 2) 0;
       last_attack_time = 0.;
     }
@@ -231,10 +229,15 @@ let check_dead (e : Common.entity) =
         print_endline
           ( "Player uuid = " ^ string_of_int e.uuid
           ^ " died with points = " ^ string_of_int e.points );
-        let weapon_idx = Random.int (List.length weighted_weapons) in
-        let weapon = List.nth weapons weapon_idx in
-        respawn_player weapon e )
+        respawn_player e )
   | _ -> if e.health > 0. then Some e else None
+
+(** [merchant_walk e] has the merchant walk around in a circle. Simple
+    enough not to require testing. Requires that e is in fact a
+    Merchant. *)
+let merchant_walk (e : Common.entity) =
+  let angle = Unix.gettimeofday () /. 20. in
+  { e with x = 1000. *. cos angle; y = 1000. *. sin angle }
 
 (** [tick_state state i e] ticks the state of the world, that is, it
     applies the relevant AI step for an entity. Only do operations on
@@ -254,8 +257,8 @@ let tick_state (state : Common.serv_state) i (e : Common.entity option)
             |> apply_physics_step |> check_dead
         | Camel (Some i) ->
             Model.follow state e |> apply_physics_step |> check_dead
-        | Player | Physik | Merchant ->
-            apply_physics_step e |> check_dead )
+        | Merchant -> merchant_walk e |> check_dead
+        | Player | Physik -> apply_physics_step e |> check_dead )
   in
   state.data.(i) <- res
 
@@ -339,6 +342,22 @@ let rec gen_spawn_points i =
     let y = radius *. sin angle in
     (x, y) :: gen_spawn_points (i - 1)
 
+(** [initial_state_set state] sets the initial game state to a useable
+    one, with a merchant, boss, etc. *)
+let initial_state_set (state : Common.serv_state) =
+  insert_entity state (Camel (Some 1)) (-450.) 10. 0. 0. "trailer" 100.
+    [] (-10)
+  |> ignore;
+  insert_entity state Merchant (-460.) 140. 0. 0. "trader" 100. [] (-10)
+  |> ignore;
+  insert_entity state Physik (-100.) 0. 0. 0. "golden_camel" 100. []
+    (-10)
+  |> ignore;
+  let boss =
+    entity_of_enemy (find_enemy "dromedarius ultimus") 0. (-100.)
+  in
+  state.data.(3) <- Some boss
+
 (** [start port] starts the server with the specified port. In
     particular, it starts the physics and networking threads, sets up
     the map, and handles similar configuration*)
@@ -351,14 +370,7 @@ let start port =
       points_gathered = ref 0;
     }
   in
-  insert_entity state (Camel (Some 1)) (-450.) 10. 0. 0. "trailer" 100.
-    [] (-10)
-  |> ignore;
-  insert_entity state Merchant (-460.) 140. 0. 0. "trader" 100. [] (-10)
-  |> ignore;
-  insert_entity state Physik (-100.) 0. 0. 0. "golden_camel" 100. []
-    (-10)
-  |> ignore;
+  initial_state_set state;
   let spawn_points = gen_spawn_points 30 in
   List.iter
     (fun (x, y) ->
