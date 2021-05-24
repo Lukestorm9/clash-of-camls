@@ -378,7 +378,7 @@ let start port =
     }
   in
   initial_state_set state;
-  let spawn_points = gen_spawn_points 30 in
+  let spawn_points = gen_spawn_points 15 in
   List.iter
     (fun (x, y) ->
       insert_entity state Physik x y 0. 0. "oasis256" 100. [] (-10)
